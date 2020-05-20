@@ -1,6 +1,6 @@
-from PySide2.QtWidgets import QApplication, QMainWindow, QAction, QGridLayout, QPushButton, QGroupBox, QVBoxLayout 
-from PySide2.QtGui import QIcon, QFont
+from PySide2.QtWidgets import QApplication, QMainWindow, QAction, QGridLayout, QPushButton 
 from PySide2.QtWidgets import QWidget
+from PySide2.QtGui import QIcon 
 
 class MainWindow(QMainWindow):
 
@@ -15,9 +15,11 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("QEMU Control")
         self.setGeometry(100, 100, 400, 300) # x, y, w, h 
 
+        # App Icon
         icon = QIcon('package/icons/nasa.png')
         self.setWindowIcon(icon)
 
+        # User Interface
         self.menu_bar()
         self.grid_layout()
 
@@ -38,9 +40,9 @@ class MainWindow(QMainWindow):
         open_ = QAction("Open Image", self)
         file_.addAction(open_)
 
-        exit = QAction("Exit", self)
-        exit.triggered.connect(QApplication.instance().quit)
-        file_.addAction(exit)
+        exit_ = QAction("Exit", self)
+        exit_.triggered.connect(QApplication.instance().quit)
+        file_.addAction(exit_)
 
         # Edit Menu Options
         prefs = QAction("Preferences", self)
@@ -83,11 +85,11 @@ class MainWindow(QMainWindow):
 
         pause_button = QPushButton("Pause", self)
         pause_button.setIcon(QIcon('package/icons/icons8-pause-90.png'))
-        grid.addWidget(pause_button, 0, 0)
+        grid.addWidget(pause_button, 0, 0) # row, column
 
         play_button = QPushButton("Play", self)
         play_button.setIcon(QIcon('package/icons/icons8-play-90.png'))
-        grid.addWidget(play_button, 0, 1)
+        grid.addWidget(play_button, 0, 1) # row, column
 
         center = QWidget()
         center.setLayout(grid)
