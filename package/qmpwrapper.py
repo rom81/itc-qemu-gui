@@ -1,17 +1,17 @@
 import socket
 import json
 
-'''
-wrapper for qemu qmp interface
+"""
+Wrapper for QEMU QMP interface
 
-example usage:
+Example Usage:
 
 >>> q = QMP('127.0.0.1', 55555)
 >>> q.execute('stop')
 {"timestamp": {"seconds": 1590021820, "microseconds": 61949}, "event": "STOP"}
 >>> q.execute('cont')
 {"return": {}}
-'''
+"""
 
 class QMP:
 
@@ -33,5 +33,6 @@ class QMP:
         resp = self.sock.recv(256).decode().strip()
         return resp
 
+    # Basic functions for main screen
     stop = lambda self : self.execute('stop')
     cont = lambda self : self.execute('cont')
