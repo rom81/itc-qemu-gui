@@ -6,6 +6,7 @@ import json
 class QMP(threading.Thread, QtCore.QObject):
 
     stateChanged = QtCore.Signal(bool)
+    emptyReturn = QtCore.Signal(bool)
 
     def __init__(self, host, port):
 
@@ -24,7 +25,7 @@ class QMP(threading.Thread, QtCore.QObject):
         self.listen() # pluck empty return object
         self.command('query-status')
         self._running = None
-
+        self._empty_return = None
     def run(self):
         while True:
             data = self.listen()
@@ -37,16 +38,21 @@ class QMP(threading.Thread, QtCore.QObject):
             # Handle Status Return Messages
             elif 'return' in data and 'running' in data['return']:
                 self.running = data['return']['running']
+            elif 'return' in data and len(data['return']) == 0:
+                self.empty_return = True
 
     def listen(self):
         data = self.sock.recv(512).decode().split('\n')[0]
         data = json.loads(data)
         return data
 
-    def command(self, cmd):
+    def command(self, cmd, args=None):
         qmpcmd = json.dumps({'execute': cmd})
+        if args:
+            qmpcmd = json.dumps({'execute': cmd, 'arguments': args})
         self.sock.sendall(qmpcmd.encode())
-    
+
+
     @property
     def running(self):
         return self._running
@@ -55,3 +61,13 @@ class QMP(threading.Thread, QtCore.QObject):
     def running(self, value):
         self._running = value
         self.stateChanged.emit(value)
+
+
+    @property
+    def empty_return(self):
+        return self._empty_return
+
+    @empty_return.setter
+    def empty_return(self, value):
+        self._empty_return = value
+        self.emptyReturn.emit(value)

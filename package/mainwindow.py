@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import QMainWindow, QAction, QGridLayout, QPushButton, QWidget
 from PySide2.QtGui import QIcon 
 from PySide2.QtCore import QSize, Slot
-
+from package.memdumpwindow import MemDumpWindow
 from package.qmpwrapper import QMP
 
 class MainWindow(QMainWindow):
@@ -15,7 +15,9 @@ class MainWindow(QMainWindow):
 
         super().__init__()
         self.init_ui()
-    
+        
+        self.new_window = None
+
     def init_ui(self):
 
         # Window Setup
@@ -67,7 +69,7 @@ class MainWindow(QMainWindow):
         run.addAction(step)
 
         # Debug Menu Options
-        hexdmp = QAction("Memory Dump", self)
+        hexdmp = QAction("Memory Dump", self, triggered=lambda:self.open_new_window(MemDumpWindow(self.qmp)))
         tools.addAction(hexdmp)
 
         asm = QAction("Assembly View", self)
@@ -98,6 +100,12 @@ class MainWindow(QMainWindow):
         grid.addWidget(self.pause_button, 0, 0) # row, column
         self.pause_button.setCheckable(True)
 
+
+
+
+
+
+
         # Check if QMP is running initially
         if not self.qmp.running:
             self.pause_button.setChecked(True)
@@ -107,7 +115,7 @@ class MainWindow(QMainWindow):
         play_button.clicked.connect(lambda: (self.pause_button.setChecked(False), self.qmp.command('cont')))
         play_button.setFixedSize(QSize(50, 50))
         grid.addWidget(play_button, 0, 1) # row, column
-
+        
         center = QWidget()
         center.setLayout(grid)
         self.setCentralWidget(center)
@@ -117,3 +125,5 @@ class MainWindow(QMainWindow):
         # Catches signals from QMPWrapper
         self.pause_button.setChecked(not value)
 
+    def open_new_window(self, window):
+        self.new_window = window
