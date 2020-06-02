@@ -1,9 +1,8 @@
 from PySide2.QtCore import QSize, Slot, Qt, QSemaphore, QThread, Signal
-from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QLabel, QTextEdit, QPushButton
+from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QLabel, QTextEdit, QPushButton, QRadioButton
 from package.qmpwrapper import QMP
 from PySide2.QtGui import QFont, QTextCharFormat, QTextCursor
-from time import sleep
-
+from enum import Enum
 block_size = 1024 # size of each requested block of memory in bytes
 
 def char_convert(byte):
@@ -38,6 +37,8 @@ class MemDumpWindow(QWidget):
         self.is_highlighted = False
         self.highlight_addr = 0
 
+        self.endian = Endian.little
+        self.endian_sem = QSemaphore(1)
         self.qmp = qmp
         self.grab_data()
 
@@ -52,9 +53,10 @@ class MemDumpWindow(QWidget):
 
     def init_ui(self):   
         self.hbox = QHBoxLayout() # holds widgets for refresh button, desired address, and size to grab
-        self.vbox = QVBoxLayout()
-        self.lower_hbox = QHBoxLayout()
+        self.vbox = QVBoxLayout() # main container
+        self.lower_hbox = QHBoxLayout() # holds memory views
         self.lower_hbox.setSpacing(0)
+        self.endian_vbox = QVBoxLayout()
 
         self.hbox.addWidget(QLabel('Address:'))
         self.address = QLineEdit()
@@ -93,7 +95,7 @@ class MemDumpWindow(QWidget):
         # textbox for char display of memory
         self.chr_display = QTextEdit()
         self.chr_display.setReadOnly(True)
-        self.chr_display.setMinimumWidth(400)
+        self.chr_display.setMinimumWidth(600)
         self.chr_display.setCurrentFont(QFont('Courier New'))
         self.lower_hbox.addWidget(self.chr_display)
 
@@ -103,6 +105,17 @@ class MemDumpWindow(QWidget):
         self.mem_display.verticalScrollBar().valueChanged.connect(self.chr_display.verticalScrollBar().setValue)  
 
         self.chr_display.verticalScrollBar().valueChanged.connect(self.handle_scroll)
+
+        # setting up endiannes selection buttons
+        self.little = QRadioButton("Little Endian")
+        self.little.click()
+        self.little.clicked.connect(lambda:self.change_endian(Endian.little))
+        self.big = QRadioButton("Big Endian")
+        self.big.clicked.connect(lambda:self.change_endian(Endian.big))
+        self.endian_vbox.addWidget(self.little)
+        self.endian_vbox.addWidget(self.big)
+
+        self.lower_hbox.addLayout(self.endian_vbox)
 
         self.vbox.addLayout(self.lower_hbox)
 
@@ -122,14 +135,18 @@ class MemDumpWindow(QWidget):
         except Exception as e: # possibly an empty return for another function
             if f:
                 f.close()
-        s = ''
-        addresses =  ''
-        count = self.baseAddress
+        s = '' # hex representation of memory
+        addresses =  '' # addresses
+        count = self.baseAddress # keeps track of each 16 addresses
         if self.chr_display.verticalScrollBar().value() == self.chr_display.verticalScrollBar().maximum():  # scrolling down
             count = self.maxAddress 
 
         first = True
-        chars = ''
+        chars = '' # char represenation of memor
+
+        line_s = '' # single line in s
+        line_c = '' # single line in chars
+        self.endian_sem.acquire()
         for b in byte:
             if count % 16 == 0:
                 if first:
@@ -137,12 +154,18 @@ class MemDumpWindow(QWidget):
                     first = False
                 else:
                     addresses += f'\n0x{count:08x}' 
-                    s += '\n'
-                    chars += '\n'
+                    s += line_s + '\n'
+                    chars += line_c + '\n'
+                    line_s = ''
+                    line_c = ''
             count += 1
-            s += f'0x{b:02x} ' 
-            chars += f'{char_convert(b)}'
-
+            if self.endian == Endian.big:
+                line_s += f'0x{b:02x} ' 
+                line_c += f'{char_convert(b):3}'
+            elif self.endian == Endian.little:
+                line_s = f'0x{b:02x} ' + line_s
+                line_c = f'{char_convert(b):3}' + line_c
+        self.endian_sem.release()
         if self.pos >= self.chr_display.verticalScrollBar().maximum() - self.delta:  # scrolling down
             self.addresses.append(addresses)
             self.mem_display.append(s)
@@ -179,7 +202,6 @@ class MemDumpWindow(QWidget):
         else:
             self.highlight_sem.release()
        
-        print('load: ' + str(self.pos))
         self.chr_display.verticalScrollBar().setValue(self.pos)
         self.chr_display.verticalScrollBar().valueChanged.connect(self.handle_scroll)
         self.sem.release()
@@ -229,7 +251,6 @@ class MemDumpWindow(QWidget):
             self.highlight_sem.release()
 
 
-        print('grab: ' + str(self.pos))
         args = {
                 'val': val,
                 'size': size,
@@ -287,15 +308,31 @@ class MemDumpWindow(QWidget):
         mem_cur = self.mem_display.textCursor()
         chr_cur = self.chr_display.textCursor()
 
-        
+
+        char_offset = 0
+        char_from_anchor = 0
+        mem_offset = 0
+        self.endian_sem.acquire()
+        if self.endian == Endian.big:
+            mem_offset = (addr % 16) * 5
+            char_offset = (addr % 16) * 3
+        elif self.endian == Endian.little:
+            mem_offset = (15*5) - ((addr % 16) * 5)
+            char_offset = (15*3) - ((addr % 16)*3)
+        self.endian_sem.release()
         addr_cur.setPosition(addr_block.position()) # getting positions
-        mem_cur.setPosition(mem_block.position() + (addr % 16) * 5) # gives character offset within 16 byte line
-        chr_cur.setPosition(chr_block.position() + (addr % 16)) # sets start of selection to just before char
-        chr_cur.setPosition(chr_block.position() + (addr % 16) + 1, mode=QTextCursor.KeepAnchor) # sets end of election to just after char
+        mem_cur.setPosition(mem_block.position() + mem_offset) # gives character offset within 16 byte line
+        chr_cur.setPosition(chr_block.position() + char_offset) # sets position of char
+
+        chr_text = self.chr_display.toPlainText()
+        if chr_text[chr_cur.position()] == '\\' and chr_cur.position() + 1 < len(chr_text) and chr_text[chr_cur.position() + 1] in ['0', 'n', 't']:
+            chr_cur.setPosition(chr_cur.position() + 2, mode=QTextCursor.KeepAnchor) 
+        else:
+            chr_cur.setPosition(chr_cur.position() + 1, mode=QTextCursor.KeepAnchor) 
+
 
         addr_cur.select(QTextCursor.LineUnderCursor)    # selects whole line
         mem_cur.select(QTextCursor.WordUnderCursor)     # selects just one word
-                                                        # chr_cur made selection by setting anchor and pos
 
         addr_cur.setCharFormat(fmt) # setting format
         mem_cur.setCharFormat(fmt)
@@ -319,6 +356,14 @@ class MemDumpWindow(QWidget):
                 size = self.baseAddress
             self.grab_data(val=self.baseAddress-size, size=size)
       
+    def change_endian(self, endian):
+        self.endian_sem.acquire()
+        if endian == Endian.little:
+            self.endian = endian
+        elif endian == Endian.big:
+            self.endian = endian
+        self.endian_sem.release()
+
 
 class MyThread(QThread):
     timing_signal = Signal(bool) 
@@ -336,4 +381,8 @@ class MyThread(QThread):
 
     def end(self, b):
         self.sem.release()
-        
+
+
+class Endian(Enum):
+    little = 1
+    big = 2
