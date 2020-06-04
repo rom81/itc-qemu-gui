@@ -1,8 +1,8 @@
-from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QLabel, QPushButton, QTreeWidget, QTreeWidgetItem
+from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QLabel, QPushButton, QTreeWidget, QTreeWidgetItem, QHeaderView
 from package.qmpwrapper import QMP
 from package.constants import constants
-from PySide2.QtCore import QSemaphore
-import time
+from PySide2.QtCore import QSemaphore, QSize
+from PySide2.QtGui import QFont
 class MemTree(QWidget):
 	def __init__(self, qmp):
 		super().__init__()
@@ -26,9 +26,14 @@ class MemTree(QWidget):
 		self.tree.itemClicked.connect(self.expand_item)
 		self.tree.itemCollapsed.connect(self.collapse_item)
 		self.tree.setColumnCount(3)
+		self.tree.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+		self.tree.header().setStretchLastSection(False)
+		self.tree.setHeaderLabels(['Memory Region', 'Start Address', 'End Address'])
 		self.vbox.addWidget(self.tree)
 
 		self.setLayout(self.vbox)
+		self.setGeometry(100, 100, 600, 325)
+		self.setWindowTitle("Memory Tree")
 		self.show()
 
 	def expand_item(self, item, column):
@@ -39,13 +44,13 @@ class MemTree(QWidget):
 				name = '?' + parent.text(0) + name
 				parent = parent.parent()
 			self.get_subregion(name)
+			item.setExpanded(True)
 		else:
-			print(item.text(0))
 			self.collapse_item(item)
 			item.setExpanded(False)
 
 	def collapse_item(self, item):
-		for i in range(item.childCount()):
+		for i in reversed(range(item.childCount())):
 			item.removeChild(item.child(i))
 
 	def get_map(self):
@@ -62,7 +67,6 @@ class MemTree(QWidget):
 		names = name.split('?')[1:]
 		for n in names:
 			found = False
-			print(root.childCount())
 			for i in range(root.childCount()):
 				child = root.child(i)
 				if child.text(0) == n:
@@ -84,8 +88,18 @@ class MemTree(QWidget):
 			for r in region:
 				node = QTreeWidgetItem(parent_node)
 				node.setText(0, r['name'])
-				node.setText(1, 'start: '  + str(r['start']))
-				node.setText(2, 'end: ' + str(r['end']))
+				start = r['start']
+				end = r['end']
+				if start < 0:
+					start = start + (1 << constants['bits'])
+				if end < 0:
+					end = end + (1 << constants['bits'])
+				node.setText(1, f'0x{start:016x}')
+				node.setText(2, f'0x{end:016x}')
+				node.setFont(0, QFont('Courier New'))
+				node.setFont(1, QFont('Courier New'))
+				node.setFont(2, QFont('Courier New'))
+
 			if type(parent) is QTreeWidgetItem and not parent_node.isExpanded():
 					parent_node.setExpanded(True)
 			self.tree_sem.release()
