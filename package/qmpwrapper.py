@@ -2,6 +2,7 @@ from PySide2 import QtCore
 import threading
 import socket
 import json
+import time
 
 class QMP(threading.Thread, QtCore.QObject):
 
@@ -19,10 +20,12 @@ class QMP(threading.Thread, QtCore.QObject):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((host, port))
 
+        self.responses = []
+
         # QMP setup
-        self.command('qmp_capabilities')
+        self.qmp_command('qmp_capabilities')
         self.listen() # pluck empty return object
-        self.command('query-status')
+        self.qmp_command('query-status')
         self._running = None
 
     def run(self):
@@ -39,13 +42,20 @@ class QMP(threading.Thread, QtCore.QObject):
                 self.running = data['return']['running']
 
     def listen(self):
-        data = self.sock.recv(512).decode().split('\n')[0]
+        data = self.sock.recv(2048).decode().split('\n')[0]
         data = json.loads(data)
+        self.responses.append(data)
         return data
 
-    def command(self, cmd):
+    def qmp_command(self, cmd):
         qmpcmd = json.dumps({'execute': cmd})
         self.sock.sendall(qmpcmd.encode())
+
+    def hmp_command(self, cmd):
+        hmpcmd = json.dumps({'execute': 'human-monitor-command', 'arguments': {'command-line': cmd}})
+        self.sock.sendall(hmpcmd.encode())
+        time.sleep(0.1) # wait for listen to capture data and place it in responses dictionary
+        return self.responses[-1]
     
     @property
     def running(self):
