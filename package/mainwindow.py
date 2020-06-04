@@ -1,8 +1,10 @@
 from PySide2.QtWidgets import QMainWindow, QAction, QGridLayout, QPushButton, QWidget
-from PySide2.QtGui import QIcon 
 from PySide2.QtCore import QSize, Slot
+from PySide2.QtGui import QIcon 
 
+from package.memdumpwindow import MemDumpWindow
 from package.registerview import RegisterView
+
 from package.qmpwrapper import QMP
 
 class MainWindow(QMainWindow):
@@ -60,17 +62,17 @@ class MainWindow(QMainWindow):
         edit.addAction(prefs)
 
         # Run Menu Options
-        pause = QAction("Pause", self, triggered=lambda:self.qmp.qmp_command('stop'))
+        pause = QAction("Pause", self, triggered=lambda:self.qmp.command('stop'))
         run.addAction(pause)
 
-        play = QAction("Play", self, triggered=lambda:self.qmp.qmp_command('cont'))
+        play = QAction("Play", self, triggered=lambda:self.qmp.command('cont'))
         run.addAction(play)
 
         step = QAction("Step", self)
         run.addAction(step)
 
         # Debug Menu Options
-        hexdmp = QAction("Memory Dump", self)
+        hexdmp = QAction("Memory Dump", self, triggered=lambda:self.open_new_window(MemDumpWindow(self.qmp)))
         tools.addAction(hexdmp)
 
         asm = QAction("Assembly View", self)
@@ -96,14 +98,18 @@ class MainWindow(QMainWindow):
 
         self.pause_button = QPushButton(self)
         self.pause_button.setIcon(QIcon('package/icons/icons8-pause-90.png'))
-        self.pause_button.clicked.connect(lambda: self.qmp.qmp_command('cont') if not self.pause_button.isChecked() else self.qmp.qmp_command('stop'))
+        self.pause_button.clicked.connect(lambda: self.qmp.command('cont') if not self.pause_button.isChecked() else self.qmp.command('stop'))
         self.pause_button.setFixedSize(QSize(50, 50))
         grid.addWidget(self.pause_button, 0, 0) # row, column
         self.pause_button.setCheckable(True)
-           
+
+        # Check if QMP is running initially
+        if not self.qmp.running:
+            self.pause_button.setChecked(True)
+
         play_button = QPushButton(self)
         play_button.setIcon(QIcon('package/icons/icons8-play-90.png'))
-        play_button.clicked.connect(lambda: (self.pause_button.setChecked(False), self.qmp.qmp_command('cont')))
+        play_button.clicked.connect(lambda: (self.pause_button.setChecked(False), self.qmp.command('cont')))
         play_button.setFixedSize(QSize(50, 50))
         grid.addWidget(play_button, 0, 1) # row, column
 
@@ -122,3 +128,4 @@ class MainWindow(QMainWindow):
     def handle_pause_button(self, value):
         # Catches signals from QMPWrapper
         self.pause_button.setChecked(not value)
+
