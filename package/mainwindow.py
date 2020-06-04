@@ -3,7 +3,7 @@ from PySide2.QtGui import QIcon
 from PySide2.QtCore import QSize, Slot
 from package.memdumpwindow import MemDumpWindow
 from package.qmpwrapper import QMP
-
+from package.memtree import MemTree
 class MainWindow(QMainWindow):
 
     def __init__(self):
@@ -16,7 +16,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.init_ui()
         
-        self.new_window = None
+        self.window = []
 
     def init_ui(self):
 
@@ -84,6 +84,9 @@ class MainWindow(QMainWindow):
         errors = QAction("Error Log", self)
         tools.addAction(errors)
 
+        tree = QAction("Memory Tree", self, triggered=lambda:self.open_new_window(MemTree(self.qmp)))
+        tools.addAction(tree)
+
         # Help Menu Options 
         usage = QAction("Usage Guide", self)
         help_.addAction(usage)
@@ -125,5 +128,5 @@ class MainWindow(QMainWindow):
         # Catches signals from QMPWrapper
         self.pause_button.setChecked(not value)
 
-    def open_new_window(self, window):
-        self.new_window = window
+    def open_new_window(self, new_window):
+        self.window.append(new_window)

@@ -7,6 +7,7 @@ class QMP(threading.Thread, QtCore.QObject):
 
     stateChanged = QtCore.Signal(bool)
     emptyReturn = QtCore.Signal(bool)
+    memoryMap = QtCore.Signal(list)
 
     def __init__(self, host, port):
 
@@ -40,11 +41,22 @@ class QMP(threading.Thread, QtCore.QObject):
                 self.running = data['return']['running']
             elif 'return' in data and len(data['return']) == 0:
                 self.empty_return = True
+            elif 'return' in data and 'memorymap' in data['return']:
+                self.memorymap = data['return']
 
     def listen(self):
-        data = self.sock.recv(512).decode().split('\n')[0]
+        
+        total_data = bytearray() # handles large returns
+        while True:
+            data = self.sock.recv(1024)
+            total_data.extend(data)
+            if len(data) < 1024:
+                break
+
+        data = total_data.decode().split('\n')[0]
         data = json.loads(data)
         return data
+
 
     def command(self, cmd, args=None):
         qmpcmd = json.dumps({'execute': cmd})
@@ -71,3 +83,14 @@ class QMP(threading.Thread, QtCore.QObject):
     def empty_return(self, value):
         self._empty_return = value
         self.emptyReturn.emit(value)
+
+
+    @property
+    def memorymap(self):
+        return self._memorymap
+
+    @memorymap.setter
+    def memorymap(self, value):
+        self._memorymap = value
+        self.memoryMap.emit(value)
+    

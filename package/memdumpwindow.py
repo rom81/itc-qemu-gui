@@ -3,7 +3,8 @@ from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QLab
 from package.qmpwrapper import QMP
 from PySide2.QtGui import QFont, QTextCharFormat, QTextCursor
 from enum import Enum
-block_size = 1024 # size of each requested block of memory in bytes
+from package.constants import constants
+
 
 def char_convert(byte):
     if byte in range(127):
@@ -67,7 +68,7 @@ class MemDumpWindow(QWidget):
         self.hbox.addWidget(self.size)
 
         self.search = QPushButton('Search')
-        self.search.clicked.connect(lambda:self.find(self.address.text(), block_size))
+        self.search.clicked.connect(lambda:self.find(self.address.text(), constants['block_size']))
         self.hbox.addWidget(self.search)
 
         self.refresh = QPushButton('Refresh')
@@ -208,7 +209,7 @@ class MemDumpWindow(QWidget):
             
 
 
-    def grab_data(self, val=0, size=block_size, refresh=False):
+    def grab_data(self, val=0, size=constants['block_size'], refresh=False):
         if val == None:
             val = 0
         if size == None:
@@ -224,12 +225,12 @@ class MemDumpWindow(QWidget):
             try:
                 size = int(size, 0)
             except Exception:
-                size = block_size
+                size = constants['block_size']
 
         if val < 0:
             val = 0
         if size < 0:
-            size = block_size
+            size = constants['block_size']
 
         val = val - (val % 16)
         if val < self.baseAddress or refresh:
@@ -351,7 +352,7 @@ class MemDumpWindow(QWidget):
         if self.chr_display.verticalScrollBar().value() >= self.chr_display.verticalScrollBar().maximum() - self.delta:
             self.grab_data(val=self.maxAddress)
         elif self.baseAddress > 0 and self.chr_display.verticalScrollBar().value() < self.chr_display.verticalScrollBar().minimum() + self.delta:
-            size = block_size
+            size = constants['block_size']
             if self.baseAddress < size:
                 size = self.baseAddress
             self.grab_data(val=self.baseAddress-size, size=size)
