@@ -1,9 +1,10 @@
 from PySide2.QtCore import QSize, Slot, Qt, QSemaphore, QThread, Signal
-from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QLabel, QTextEdit, QPushButton, QRadioButton
+from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QLabel, QTextEdit, QPushButton, QRadioButton, QCheckBox
 from package.qmpwrapper import QMP
 from PySide2.QtGui import QFont, QTextCharFormat, QTextCursor
 from enum import Enum
-block_size = 1024 # size of each requested block of memory in bytes
+from package.constants import constants
+import time
 
 def char_convert(byte):
     if byte in range(127):
@@ -39,14 +40,14 @@ class MemDumpWindow(QWidget):
 
         self.endian = Endian.little
         self.endian_sem = QSemaphore(1)
+
         self.qmp = qmp
         self.grab_data()
 
-        self.qmp.emptyReturn.connect(self.update_text)
-        
         self.t = MyThread(self)
         self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, refresh=True))
         self.t.start()
+        self.qmp.emptyReturn.connect(self.update_text)
 
         self.show()
        
@@ -67,12 +68,17 @@ class MemDumpWindow(QWidget):
         self.hbox.addWidget(self.size)
 
         self.search = QPushButton('Search')
-        self.search.clicked.connect(lambda:self.find(self.address.text(), block_size))
+        self.search.clicked.connect(lambda:self.find(self.address.text(), constants['block_size']))
         self.hbox.addWidget(self.search)
 
         self.refresh = QPushButton('Refresh')
         self.refresh.clicked.connect(lambda:self.grab_data(val=self.address.text(), size=self.size.text(), refresh=True))
         self.hbox.addWidget(self.refresh)
+
+        self.auto_refresh = QCheckBox('Auto Refresh')
+        self.auto_refresh.setCheckState(Qt.CheckState.Checked)
+        self.auto_refresh.stateChanged.connect(self.auto_refresh_check)
+        self.hbox.addWidget(self.auto_refresh)
 
         self.vbox.addLayout(self.hbox)
         
@@ -121,9 +127,19 @@ class MemDumpWindow(QWidget):
 
         self.setLayout(self.vbox)
         self.setWindowTitle("Memory Dump")
+        self.setGeometry(100, 100, 1550, 500)
+
+    def auto_refresh_check(self, value):
+        if self.auto_refresh.checkState() == Qt.CheckState.Checked and not self.t.isRunning():
+            self.t = MyThread(self)
+            self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, refresh=True))
+            self.t.start()
+        elif self.auto_refresh.checkState() == Qt.CheckState.Unchecked:
+            self.kill_signal.emit(True)
 
     def closeEvent(self, event):
         self.kill_signal.emit(True)
+        self.qmp.emptyReturn.disconnect(self.update_text)
         event.accept()
 
     def update_text(self, value):
@@ -138,9 +154,9 @@ class MemDumpWindow(QWidget):
         s = '' # hex representation of memory
         addresses =  '' # addresses
         count = self.baseAddress # keeps track of each 16 addresses
-        if self.chr_display.verticalScrollBar().value() == self.chr_display.verticalScrollBar().maximum():  # scrolling down
+        if self.pos == self.chr_display.verticalScrollBar().maximum():  # scrolling down
             count = self.maxAddress 
-
+        self.maxAddress = count + len(byte)
         first = True
         chars = '' # char represenation of memor
 
@@ -166,13 +182,14 @@ class MemDumpWindow(QWidget):
                 line_s = f'0x{b:02x} ' + line_s
                 line_c = f'{char_convert(b):3}' + line_c
         self.endian_sem.release()
-        if self.pos >= self.chr_display.verticalScrollBar().maximum() - self.delta:  # scrolling down
-            self.addresses.append(addresses)
-            self.mem_display.append(s)
-            self.chr_display.append(chars)
-            self.maxAddress += len(byte)
 
-        elif self.pos < self.chr_display.verticalScrollBar().minimum() + self.delta:    # scrolling  up
+        if self.pos >= self.max - self.delta:  # scrolling down
+            self.addresses.append(addresses)
+            self.mem_display.append(s[:-1])
+            self.chr_display.append(chars[:-1])
+            self.chr_display.verticalScrollBar().setValue(self.max)
+
+        elif self.pos < self.min + self.delta:    # scrolling  up
             addr_cur = self.addresses.textCursor()
             mem_cur = self.mem_display.textCursor()
             chr_cur = self.chr_display.textCursor()
@@ -184,16 +201,15 @@ class MemDumpWindow(QWidget):
             self.addresses.setTextCursor(addr_cur)
             self.mem_display.setTextCursor(mem_cur)
             self.chr_display.setTextCursor(chr_cur)
-
             self.addresses.insertPlainText(addresses + '\n')
-            self.mem_display.insertPlainText(s + '\n')
-            self.chr_display.insertPlainText(chars + '\n')
-
+            self.mem_display.insertPlainText(s)
+            self.chr_display.insertPlainText(chars)
+            self.chr_display.verticalScrollBar().setValue(self.chr_display.verticalScrollBar().maximum() - self.max)
         else:
             self.addresses.setPlainText(addresses)
-            self.mem_display.setPlainText(s)
-            self.chr_display.setPlainText(chars)
-            
+            self.mem_display.setPlainText(s[:-1])
+            self.chr_display.setPlainText(chars[:-1])
+            self.chr_display.verticalScrollBar().setValue(self.pos)
 
         self.highlight_sem.acquire()
         if self.is_highlighted:
@@ -202,13 +218,12 @@ class MemDumpWindow(QWidget):
         else:
             self.highlight_sem.release()
        
-        self.chr_display.verticalScrollBar().setValue(self.pos)
         self.chr_display.verticalScrollBar().valueChanged.connect(self.handle_scroll)
         self.sem.release()
             
 
 
-    def grab_data(self, val=0, size=block_size, refresh=False):
+    def grab_data(self, val=0, size=constants['block_size'], refresh=False):
         if val == None:
             val = 0
         if size == None:
@@ -224,12 +239,12 @@ class MemDumpWindow(QWidget):
             try:
                 size = int(size, 0)
             except Exception:
-                size = block_size
+                size = constants['block_size']
 
         if val < 0:
             val = 0
         if size < 0:
-            size = block_size
+            size = constants['block_size']
 
         val = val - (val % 16)
         if val < self.baseAddress or refresh:
@@ -238,7 +253,8 @@ class MemDumpWindow(QWidget):
         self.sem.acquire()
         self.chr_display.verticalScrollBar().valueChanged.disconnect(self.handle_scroll)
         self.pos = self.chr_display.verticalScrollBar().value()
-
+        self.max = self.chr_display.verticalScrollBar().maximum()
+        self.min = self.chr_display.verticalScrollBar().minimum()
         if refresh:
             self.addresses.clear()  # clearing to refresh data, other regions will be refilled through scrolling
             self.mem_display.clear()
@@ -246,10 +262,10 @@ class MemDumpWindow(QWidget):
             self.maxAddress = self.baseAddress
 
             self.highlight_sem.acquire()
-            if self.highlight_addr not in range(val, val + size):
+            if self.is_highlighted and self.highlight_addr not in range(val, val + size):
                 self.is_highlighted = False
+                self.pos = 0
             self.highlight_sem.release()
-
 
         args = {
                 'val': val,
@@ -351,7 +367,7 @@ class MemDumpWindow(QWidget):
         if self.chr_display.verticalScrollBar().value() >= self.chr_display.verticalScrollBar().maximum() - self.delta:
             self.grab_data(val=self.maxAddress)
         elif self.baseAddress > 0 and self.chr_display.verticalScrollBar().value() < self.chr_display.verticalScrollBar().minimum() + self.delta:
-            size = block_size
+            size = constants['block_size']
             if self.baseAddress < size:
                 size = self.baseAddress
             self.grab_data(val=self.baseAddress-size, size=size)
