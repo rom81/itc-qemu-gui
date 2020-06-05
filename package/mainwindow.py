@@ -16,7 +16,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.init_ui()
         
-        self.window = []
+        self.window = {}
 
     def init_ui(self):
 
@@ -129,4 +129,4 @@ class MainWindow(QMainWindow):
         self.pause_button.setChecked(not value)
 
     def open_new_window(self, new_window):
-        self.window.append(new_window)
+        self.window[type(new_window).__name__] = new_window # this way the old instance get fully reaped
