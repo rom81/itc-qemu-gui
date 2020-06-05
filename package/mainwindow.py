@@ -1,9 +1,12 @@
-from PySide2.QtWidgets import QMainWindow, QAction, QGridLayout, QPushButton, QWidget
+from PySide2.QtWidgets import QMainWindow, QAction, QGridLayout, QPushButton, QWidget, QLabel
 from PySide2.QtGui import QIcon 
 from PySide2.QtCore import QSize, Slot
 from package.memdumpwindow import MemDumpWindow
 from package.qmpwrapper import QMP
 from package.memtree import MemTree
+import threading
+import time
+
 class MainWindow(QMainWindow):
 
     def __init__(self):
@@ -15,7 +18,11 @@ class MainWindow(QMainWindow):
 
         super().__init__()
         self.init_ui()
-        
+
+        self.qmp.timeUpdate.connect(self.update_time)
+        self.t = TimeThread(self.qmp)
+        self.t.start()
+
         self.window = {}
 
     def init_ui(self):
@@ -103,12 +110,6 @@ class MainWindow(QMainWindow):
         grid.addWidget(self.pause_button, 0, 0) # row, column
         self.pause_button.setCheckable(True)
 
-
-
-
-
-
-
         # Check if QMP is running initially
         if not self.qmp.running:
             self.pause_button.setChecked(True)
@@ -119,6 +120,9 @@ class MainWindow(QMainWindow):
         play_button.setFixedSize(QSize(50, 50))
         grid.addWidget(play_button, 0, 1) # row, column
         
+        self.time = QLabel()
+        grid.addWidget(self.time)
+
         center = QWidget()
         center.setLayout(grid)
         self.setCentralWidget(center)
@@ -130,3 +134,17 @@ class MainWindow(QMainWindow):
 
     def open_new_window(self, new_window):
         self.window[type(new_window).__name__] = new_window # this way the old instance get fully reaped
+
+    def update_time(self, time):
+        self.time.setText(f'{time[0]}\t{time[1]}')
+
+class TimeThread(threading.Thread):
+    def __init__(self, qmp):
+        super().__init__()
+        self.daemon = True
+        self.qmp = qmp
+
+    def run(self):
+        while True:
+            time.sleep(1)
+            self.qmp.command('qeury-block')

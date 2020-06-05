@@ -8,7 +8,7 @@ class QMP(threading.Thread, QtCore.QObject):
     stateChanged = QtCore.Signal(bool)
     emptyReturn = QtCore.Signal(bool)
     memoryMap = QtCore.Signal(list)
-
+    timeUpdate = QtCore.Signal(tuple)
     def __init__(self, host, port):
 
         QtCore.QObject.__init__(self)
@@ -27,6 +27,7 @@ class QMP(threading.Thread, QtCore.QObject):
         self.command('query-status')
         self._running = None
         self._empty_return = None
+        self._time = None
     def run(self):
         while True:
             data = self.listen()
@@ -43,6 +44,9 @@ class QMP(threading.Thread, QtCore.QObject):
                 self.empty_return = True
             elif 'return' in data and 'memorymap' in data['return']:
                 self.memorymap = data['return']
+            elif 'return' in data and 'inserted' in data['return'] and 'image' in data['return']['inserted'] and 'snapshots' in data['return']['inserted']['image']:
+                print(data)
+                self.time = (data['return']['inserted']['image']['snapshots'][0]['vm-clock-sec'], data['return']['inserted']['image']['snapshots'][0]['vm-clock-nsec'])
 
     def listen(self):
         
@@ -93,4 +97,14 @@ class QMP(threading.Thread, QtCore.QObject):
     def memorymap(self, value):
         self._memorymap = value
         self.memoryMap.emit(value)
+
+
+    @property
+    def time(self):
+        return self._time
+
+    @time.setter
+    def time(self, value):
+        self._time = value
+        self.timeUpdate.emit(value)
     
