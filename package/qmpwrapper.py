@@ -28,6 +28,7 @@ class QMP(threading.Thread, QtCore.QObject):
         self._running = None
         self._empty_return = None
         self._time = None
+        
     def run(self):
         while True:
             data = self.listen()
@@ -44,9 +45,8 @@ class QMP(threading.Thread, QtCore.QObject):
                 self.empty_return = True
             elif 'return' in data and 'memorymap' in data['return']:
                 self.memorymap = data['return']
-            elif 'return' in data and 'inserted' in data['return'] and 'image' in data['return']['inserted'] and 'snapshots' in data['return']['inserted']['image']:
-                print(data)
-                self.time = (data['return']['inserted']['image']['snapshots'][0]['vm-clock-sec'], data['return']['inserted']['image']['snapshots'][0]['vm-clock-nsec'])
+            elif 'return' in data and 'time_ns' in data['return']:
+                self.time = data['return']['time_ns']
 
     def listen(self):
         

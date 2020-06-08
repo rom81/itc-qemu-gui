@@ -1,11 +1,12 @@
 from PySide2.QtWidgets import QMainWindow, QAction, QGridLayout, QPushButton, QWidget, QLabel
-from PySide2.QtGui import QIcon 
+from PySide2.QtGui import QIcon, QFont 
 from PySide2.QtCore import QSize, Slot
 from package.memdumpwindow import MemDumpWindow
 from package.qmpwrapper import QMP
 from package.memtree import MemTree
 import threading
 import time
+from datetime import datetime
 
 class MainWindow(QMainWindow):
 
@@ -121,7 +122,8 @@ class MainWindow(QMainWindow):
         grid.addWidget(play_button, 0, 1) # row, column
         
         self.time = QLabel()
-        grid.addWidget(self.time)
+        self.time.setFont(QFont('Courier New'))
+        grid.addWidget(self.time, 0, 2)
 
         center = QWidget()
         center.setLayout(grid)
@@ -136,7 +138,8 @@ class MainWindow(QMainWindow):
         self.window[type(new_window).__name__] = new_window # this way the old instance get fully reaped
 
     def update_time(self, time):
-        self.time.setText(f'{time[0]}\t{time[1]}')
+        date = datetime.fromtimestamp(time / 1000000000)
+        self.time.setText(f'Time: {date.day - 1:02}:{date.hour:02}:{date.minute:02}:{date.second:02}') # -1 for day because it starts from 1
 
 class TimeThread(threading.Thread):
     def __init__(self, qmp):
@@ -146,5 +149,6 @@ class TimeThread(threading.Thread):
 
     def run(self):
         while True:
-            time.sleep(1)
-            self.qmp.command('qeury-block')
+            time.sleep(.5)
+            args = {'clock': 'virtual'}
+            self.qmp.command('itc-sim-time', args=args)
