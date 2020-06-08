@@ -25,9 +25,9 @@ class QMP(threading.Thread, QtCore.QObject):
         self.responses = []
 
         # QMP setup
-        self.qmp_command('qmp_capabilities')
+        self.command('qmp_capabilities')
         self.listen() # pluck empty return object
-        self.qmp_command('query-status')
+        self.command('query-status')
         self._running = None
         self._empty_return = None
 
@@ -70,8 +70,11 @@ class QMP(threading.Thread, QtCore.QObject):
         self.responses.append(data)
         return data
 
-    def qmp_command(self, cmd):
+
+    def command(self, cmd, args=None):
         qmpcmd = json.dumps({'execute': cmd})
+        if args:
+            qmpcmd = json.dumps({'execute': cmd, 'arguments': args})
         self.sock.sendall(qmpcmd.encode())
 
     def hmp_command(self, cmd):
@@ -89,3 +92,24 @@ class QMP(threading.Thread, QtCore.QObject):
         # print('sent: ', value)
         self._running = value
         self.stateChanged.emit(value)
+
+
+    @property
+    def empty_return(self):
+        return self._empty_return
+
+    @empty_return.setter
+    def empty_return(self, value):
+        self._empty_return = value
+        self.emptyReturn.emit(value)
+
+
+    @property
+    def memorymap(self):
+        return self._memorymap
+
+    @memorymap.setter
+    def memorymap(self, value):
+        self._memorymap = value
+        self.memoryMap.emit(value)
+    

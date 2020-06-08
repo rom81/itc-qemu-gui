@@ -1,12 +1,13 @@
 from PySide2.QtWidgets import QMainWindow, QWidget, QLabel, QGridLayout, QShortcut, QLineEdit
 from PySide2.QtGui import QKeySequence, QFont
 from PySide2.QtCore import Qt
+import re
 
-class RegisterView(QWidget):
+class RegisterView(QMainWindow):
 
     def __init__(self, qmp):
 
-        QWidget.__init__(self)
+        QMainWindow.__init__(self)
 
         self.qmp = qmp
 
@@ -21,9 +22,6 @@ class RegisterView(QWidget):
         grid.setSpacing(5)
 
         data = self.qmp.hmp_command('info registers')
-        self.registers = QLabel(data['return'], self)
-        self.registers.setFont(QFont('Monospace', 12))
-        self.registers.setTextInteractionFlags(Qt.TextSelectableByMouse)
 
         d = {}
         for e in filter(None, re.split('=| |\r\n', data['return'])): # string to dictionary
