@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QWidget, QLabel, QGridLayout, QAction, QShortcut
+from PySide2.QtWidgets import QMainWindow, QWidget, QLabel, QGridLayout, QShortcut, QLineEdit
 from PySide2.QtGui import QKeySequence, QFont
 from PySide2.QtCore import Qt
 
@@ -16,16 +16,38 @@ class RegisterView(QWidget):
     def init_ui(self):
 
         self.setWindowTitle('Register View')
-        self.setGeometry(100, 100, 800, 500) # x, y, w, h
+
+        grid = QGridLayout()
+        grid.setSpacing(5)
 
         data = self.qmp.hmp_command('info registers')
         self.registers = QLabel(data['return'], self)
         self.registers.setFont(QFont('Monospace', 12))
         self.registers.setTextInteractionFlags(Qt.TextSelectableByMouse)
 
-        shortcut = QShortcut(QKeySequence('Ctrl+r'), self, activated=self.refresh)
+        d = {}
+        for e in filter(None, re.split('=| |\r\n', data['return'])): # string to dictionary
+            if not re.match('[0-9a-f]+', e) and '[' not in e:
+                temp = e
+                d[e] = ''
+            else:
+                d[temp] += (e + ' ')
     
-    def refresh(self):
+        columns = 3
 
-        data = self.qmp.hmp_command('info registers')
-        self.registers.setText(data['return'])
+        for y, reg in enumerate(d):
+
+            lab = QLabel(reg, self)
+            lab.setFont(QFont('Monospace', 12))
+            grid.addWidget(lab, y // columns, (y * 2) % (columns * 2))
+            valbox = QLineEdit(self)
+            valbox.setText(d[reg])
+            valbox.setReadOnly(True)
+            valbox.setFont(QFont('Monospace', 12))
+            grid.addWidget(valbox, y // columns, ((y * 2) % (columns * 2)) + 1)
+
+        shortcut = QShortcut(QKeySequence('Ctrl+r'), self, activated=self.init_ui) # refresh registers
+
+        center = QWidget()
+        center.setLayout(grid)
+        self.setCentralWidget(center)

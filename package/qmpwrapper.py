@@ -6,7 +6,9 @@ import time
 
 class QMP(threading.Thread, QtCore.QObject):
 
-    stateChanged = QtCore.Signal(bool)
+    stateChanged = QtCore.Signal(str)
+    emptyReturn = QtCore.Signal(bool)
+    memoryMap = QtCore.Signal(list)
 
     def __init__(self, host, port):
 
@@ -27,22 +29,43 @@ class QMP(threading.Thread, QtCore.QObject):
         self.listen() # pluck empty return object
         self.qmp_command('query-status')
         self._running = None
+        self._empty_return = None
 
     def run(self):
         while True:
             data = self.listen()
+            if data == 'lost_conn':
+                self.running = 'error'
+                break
             # Handle Async QMP Messages 
             if 'timestamp' in data:
                 if data['event'] == 'STOP':
-                    self.running = False
+                    self.running = 'paused'
                 elif data['event'] == 'RESUME': 
-                    self.running = True
+                    self.running = 'running'
             # Handle Status Return Messages
             elif 'return' in data and 'running' in data['return']:
-                self.running = data['return']['running']
+                if data['return']['running']:
+                    self.running = 'running'
+                else:
+                    self.running = 'paused'
+            elif 'return' in data and len(data['return']) == 0:
+                self.empty_return = True
+            elif 'return' in data and 'memorymap' in data['return']:
+                self.memorymap = data['return']
 
     def listen(self):
-        data = self.sock.recv(2048).decode().split('\n')[0]
+        
+        total_data = bytearray() # handles large returns
+        while True:
+            data = self.sock.recv(1024)
+            if not data:
+                return 'lost_conn'
+            total_data.extend(data)
+            if len(data) < 1024:
+                break
+
+        data = total_data.decode().split('\n')[0]
         data = json.loads(data)
         self.responses.append(data)
         return data
@@ -63,5 +86,6 @@ class QMP(threading.Thread, QtCore.QObject):
     
     @running.setter
     def running(self, value):
+        # print('sent: ', value)
         self._running = value
         self.stateChanged.emit(value)
