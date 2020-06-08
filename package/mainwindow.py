@@ -7,6 +7,7 @@ from package.registerview import RegisterView
 
 from package.qmpwrapper import QMP
 from package.memtree import MemTree
+
 class MainWindow(QMainWindow):
 
     def __init__(self):
