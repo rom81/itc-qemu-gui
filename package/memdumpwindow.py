@@ -287,12 +287,6 @@ class MemDumpWindow(QWidget):
         else:
             self.grab_data(val=addr, size=size, refresh=True )
             self.highlight(addr)
-            
-        self.sem.acquire()
-        self.chr_display.verticalScrollBar().valueChanged.disconnect(self.handle_scroll)
-        self.chr_display.ensureCursorVisible()
-        self.chr_display.verticalScrollBar().valueChanged.connect(self.handle_scroll)
-        self.sem.release()
 
 
     def highlight(self, addr):
