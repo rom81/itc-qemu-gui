@@ -1,12 +1,19 @@
+
 from PySide2.QtWidgets import QMainWindow, QAction, QGridLayout, QPushButton, QWidget, QLabel
 from PySide2.QtGui import QIcon, QFont 
 from PySide2.QtCore import QSize, Slot
+
+
 from package.memdumpwindow import MemDumpWindow
+from package.registerview import RegisterView
+
 from package.qmpwrapper import QMP
 from package.memtree import MemTree
+
 import threading
 import time
 from datetime import datetime
+
 
 class MainWindow(QMainWindow):
 
@@ -83,7 +90,7 @@ class MainWindow(QMainWindow):
         asm = QAction("Assembly View", self)
         tools.addAction(asm)
 
-        registers = QAction("Register View", self)
+        registers = QAction("Register View", self, triggered=lambda:self.open_new_window(RegisterView(self.qmp)))
         tools.addAction(registers)
 
         stack = QAction("Stack View", self)
@@ -120,10 +127,17 @@ class MainWindow(QMainWindow):
         play_button.clicked.connect(lambda: (self.pause_button.setChecked(False), self.qmp.command('cont')))
         play_button.setFixedSize(QSize(50, 50))
         grid.addWidget(play_button, 0, 1) # row, column
+
         
         self.time = QLabel()
         self.time.setFont(QFont('Courier New'))
         grid.addWidget(self.time, 0, 2)
+
+
+
+        # Check if QMP is running initially
+        if not self.qmp.running:
+            self.pause_button.setChecked(True)
 
         center = QWidget()
         center.setLayout(grid)

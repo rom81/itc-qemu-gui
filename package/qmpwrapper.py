@@ -2,6 +2,7 @@ from PySide2 import QtCore
 import threading
 import socket
 import json
+import time
 
 class QMP(threading.Thread, QtCore.QObject):
 
@@ -20,6 +21,8 @@ class QMP(threading.Thread, QtCore.QObject):
         # Socket creation
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((host, port))
+
+        self.responses = []
 
         # QMP setup
         self.command('qmp_capabilities')
@@ -59,6 +62,7 @@ class QMP(threading.Thread, QtCore.QObject):
 
         data = total_data.decode().split('\n')[0]
         data = json.loads(data)
+        self.responses.append(data)
         return data
 
 
@@ -68,7 +72,12 @@ class QMP(threading.Thread, QtCore.QObject):
             qmpcmd = json.dumps({'execute': cmd, 'arguments': args})
         self.sock.sendall(qmpcmd.encode())
 
-
+    def hmp_command(self, cmd):
+        hmpcmd = json.dumps({'execute': 'human-monitor-command', 'arguments': {'command-line': cmd}})
+        self.sock.sendall(hmpcmd.encode())
+        time.sleep(0.1) # wait for listen to capture data and place it in responses dictionary
+        return self.responses[-1]
+    
     @property
     def running(self):
         return self._running
