@@ -8,3 +8,7 @@ source ./venv/bin/activate
 pip3 install -r requirements.txt
 python3 main.py
 ```
+Alternatively, you can use the provided startup script to do this automatically.
+```
+source ./startup.sh
+```
