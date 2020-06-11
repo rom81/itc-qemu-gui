@@ -10,8 +10,6 @@ class QMP(threading.Thread, QtCore.QObject):
     emptyReturn = QtCore.Signal(bool)
     memoryMap = QtCore.Signal(list)
     timeUpdate = QtCore.Signal(tuple)
-    memoryMap = QtCore.Signal(list)
-    timeUpdate = QtCore.Signal(tuple)
     memSizeInfo = QtCore.Signal(int)
 
     def __init__(self, host, port):
@@ -57,6 +55,7 @@ class QMP(threading.Thread, QtCore.QObject):
                 self.time = data['return']['time_ns']
             elif 'return' in data and 'base-memory' in data['return']:
                 self.mem_size = data['return']['base-memory']
+
 
     def listen(self):
         
