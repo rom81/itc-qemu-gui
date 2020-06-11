@@ -323,10 +323,6 @@ class MemDumpWindow(QWidget):
             self.highlight_addr = addr
             self.highlight_sem.release()
             self.grab_data(val=addr, size=size, refresh=True )
-<<<<<<< HEAD
-=======
-            self.highlight(addr)
->>>>>>> e9ba277dae3fc314f4f2967351def1634f00ff31
 
 
     def clear_highlight(self):
