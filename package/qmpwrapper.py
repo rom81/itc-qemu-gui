@@ -12,6 +12,7 @@ class QMP(threading.Thread, QtCore.QObject):
     timeUpdate = QtCore.Signal(tuple)
     memoryMap = QtCore.Signal(list)
     timeUpdate = QtCore.Signal(tuple)
+    memSizeInfo = QtCore.Signal(int)
 
     def __init__(self, host, port):
 
@@ -34,6 +35,7 @@ class QMP(threading.Thread, QtCore.QObject):
         self._running = None
         self._empty_return = None
         self._time = None
+        self._mem_size = None
         
     def run(self):
         while True:
@@ -53,8 +55,8 @@ class QMP(threading.Thread, QtCore.QObject):
                 self.memorymap = data['return']
             elif 'return' in data and 'time_ns' in data['return']:
                 self.time = data['return']['time_ns']
-            else:
-                print(data)
+            elif 'return' in data and 'base-memory' in data['return']:
+                self.mem_size = data['return']['base-memory']
 
     def listen(self):
         
@@ -122,3 +124,13 @@ class QMP(threading.Thread, QtCore.QObject):
     def time(self, value):
         self._time = value
         self.timeUpdate.emit(value)
+
+
+    @property
+    def mem_size(self):
+        return self._mem_size
+
+    @mem_size.setter
+    def mem_size(self, value):
+        self._mem_size = value
+        self.memSizeInfo.emit(value)
