@@ -174,7 +174,7 @@ class MemDumpWindow(QWidget):
         s = [''] * ((len(byte) // 16) + 1) # hex representation of memory
         addresses =  '' # addresses
         count = self.baseAddress # keeps track of each 16 addresses
-        if self.pos == self.chr_display.verticalScrollBar().maximum():  # scrolling down
+        if self.pos == self.max:  # scrolling down
             count = self.maxAddress 
         self.maxAddress = count + len(byte)
         first = True
@@ -211,8 +211,8 @@ class MemDumpWindow(QWidget):
 
         if self.pos >= self.max - self.delta:  # scrolling down
             self.addresses.append(addresses)
-            self.mem_display.append(s[:-1])
-            self.chr_display.append(chars[:-1])
+            self.mem_display.append(s)
+            self.chr_display.append(chars)
             scroll_goto = self.max
 
         elif self.pos < self.min + self.delta:    # scrolling  up
@@ -233,10 +233,11 @@ class MemDumpWindow(QWidget):
             self.chr_display.insertPlainText(chars)
 
             scroll_goto = self.chr_display.verticalScrollBar().maximum() - self.max
+
         else:
             self.addresses.setPlainText(addresses)
-            self.mem_display.setPlainText(s[:-1])
-            self.chr_display.setPlainText(chars[:-1])
+            self.mem_display.setPlainText(s)
+            self.chr_display.setPlainText(chars)
 
         self.highlight_sem.acquire()
         if self.is_highlighted:
@@ -250,7 +251,7 @@ class MemDumpWindow(QWidget):
         self.sem.release()
             
 
-    def grab_data(self, val=0, size=constants['block_size'], refresh=False):            
+    def grab_data(self, val=0, size=constants['block_size'], refresh=False):         
         if val == None:
             val = 0
         if size == None:
@@ -275,14 +276,16 @@ class MemDumpWindow(QWidget):
         if size < 0:
             size = constants['block_size']
         
-    
+        self.sem.acquire()
+
         val = val - (val % 16)
         if val < self.baseAddress or refresh:
             self.baseAddress = val
-        size = size + (size - (size % 16))
+        if size % 16 != 0:
+            size = size + (16 - (size % 16))
         if val + size > self.max_size:
             size = self.max_size - val
-        self.sem.acquire()
+
         self.chr_display.verticalScrollBar().valueChanged.disconnect(self.handle_scroll)
         self.pos = self.chr_display.verticalScrollBar().value()
         self.max = self.chr_display.verticalScrollBar().maximum()
