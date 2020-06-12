@@ -1,5 +1,5 @@
 
-from PySide2.QtWidgets import QMainWindow, QAction, QGridLayout, QPushButton, QWidget, QLabel
+from PySide2.QtWidgets import QMainWindow, QAction, QGridLayout, QPushButton, QWidget, QLabel, QLineEdit
 from PySide2.QtGui import QIcon, QFont 
 from PySide2.QtCore import QSize, Slot
 
@@ -19,8 +19,8 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
  
-        self.qmp = QMP('localhost', 55555)
-        self.qmp.start()
+        self.qmp = QMP()
+        #self.qmp.start()
 
         self.qmp.stateChanged.connect(self.handle_pause_button)
 
@@ -29,7 +29,7 @@ class MainWindow(QMainWindow):
 
         self.qmp.timeUpdate.connect(self.update_time)
         self.t = TimeThread(self.qmp)
-        self.t.start()
+        
 
         self.window = {}
 
@@ -84,13 +84,13 @@ class MainWindow(QMainWindow):
         run.addAction(step)
 
         # Debug Menu Options
-        hexdmp = QAction("Memory Dump", self, triggered=lambda:self.open_new_window(MemDumpWindow(self.qmp)))
+        hexdmp = QAction("Memory Dump", self, triggered=(lambda: self.open_new_window(MemDumpWindow(self.qmp)) if self.qmp.isSockValid() else None))
         tools.addAction(hexdmp)
 
         asm = QAction("Assembly View", self)
         tools.addAction(asm)
 
-        registers = QAction("Register View", self, triggered=lambda:self.open_new_window(RegisterView(self.qmp)))
+        registers = QAction("Register View", self, triggered=(lambda: self.open_new_window(RegisterView(self.qmp)) if self.qmp.isSockValid() else None))
         tools.addAction(registers)
 
         stack = QAction("Stack View", self)
@@ -99,7 +99,7 @@ class MainWindow(QMainWindow):
         errors = QAction("Error Log", self)
         tools.addAction(errors)
 
-        tree = QAction("Memory Tree", self, triggered=lambda:self.open_new_window(MemTree(self.qmp)))
+        tree = QAction("Memory Tree", self, triggered=(lambda: self.open_new_window(MemTree(self.qmp)) if self.qmp.isSockValid() else None))
         tools.addAction(tree)
 
         # Help Menu Options 
@@ -129,11 +129,19 @@ class MainWindow(QMainWindow):
         grid.addWidget(play_button, 0, 1) # row, column
 
         
-        self.time = QLabel()
+        self.time = QLabel('Time: 00:00:00:00')
         self.time.setFont(QFont('Courier New'))
         grid.addWidget(self.time, 0, 2)
 
+        self.host = QLineEdit()
+        grid.addWidget(self.host, 1, 0)
 
+        self.port = QLineEdit()
+        grid.addWidget(self.port, 1, 1)
+
+        self.connect = QPushButton("Connect")
+        self.connect.clicked.connect(self.qmp_start)
+        grid.addWidget(self.connect, 1, 2)
 
         # Check if QMP is running initially
         if not self.qmp.running:
@@ -149,11 +157,19 @@ class MainWindow(QMainWindow):
         self.pause_button.setChecked(not value)
 
     def open_new_window(self, new_window):
-        self.window[type(new_window).__name__] = new_window # this way the old instance get fully reaped
+        if self.qmp.isSockValid():
+            self.window[type(new_window).__name__] = new_window # this way the old instance get fully reaped
 
     def update_time(self, time):
         date = datetime.fromtimestamp(time / 1000000000)
         self.time.setText(f'Time: {date.day - 1:02}:{date.hour:02}:{date.minute:02}:{date.second:02}') # -1 for day because it starts from 1
+
+    def qmp_start(self):
+        self.qmp.reconnect(self.host.text(), int(self.port.text()))
+        if not self.qmp.isAlive():
+            self.qmp.start()
+        if not self.t.isAlive():
+            self.t.start()
 
 class TimeThread(threading.Thread):
     def __init__(self, qmp):

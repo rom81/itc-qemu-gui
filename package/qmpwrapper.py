@@ -12,7 +12,7 @@ class QMP(threading.Thread, QtCore.QObject):
     timeUpdate = QtCore.Signal(tuple)
     memSizeInfo = QtCore.Signal(int)
 
-    def __init__(self, host, port):
+    def __init__(self):
 
         QtCore.QObject.__init__(self)
         threading.Thread.__init__(self)
@@ -21,16 +21,14 @@ class QMP(threading.Thread, QtCore.QObject):
         self.daemon = True 
 
         # Socket creation
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((host, port))
+        self.sock = None
+        self.isValid = False
+        self.sock_sem = QtCore.QSemaphore(1)
 
         self.responses = []
 
         # QMP setup
-        self.command('qmp_capabilities')
-        self.listen() # pluck empty return object
-        self.command('query-status')
-        self._running = None
+        self._running = False
         self._empty_return = None
         self._time = None
         self._mem_size = None
@@ -58,33 +56,65 @@ class QMP(threading.Thread, QtCore.QObject):
 
 
     def listen(self):
-        
-        total_data = bytearray() # handles large returns
-        while True:
-            data = self.sock.recv(1024)
-            total_data.extend(data)
-            if len(data) < 1024:
-                break
+        if self.isSockValid():
+            total_data = bytearray() # handles large returns
+            while True:
+                data = self.sock.recv(1024)
+                total_data.extend(data)
+                if len(data) < 1024:
+                    break
 
-        data = total_data.decode().split('\n')[0]
-        data = json.loads(data)
-        self.responses.append(data)
-        return data
+            data = total_data.decode().split('\n')[0]
+            data = json.loads(data)
+            self.responses.append(data)
+            return data
+        return ''
 
 
     def command(self, cmd, args=None):
-        qmpcmd = json.dumps({'execute': cmd})
-        if args:
-            qmpcmd = json.dumps({'execute': cmd, 'arguments': args})
-        self.sock.sendall(qmpcmd.encode())
+        if self.isSockValid():
+            qmpcmd = json.dumps({'execute': cmd})
+            if args:
+                qmpcmd = json.dumps({'execute': cmd, 'arguments': args})
+            self.sock.sendall(qmpcmd.encode())
 
     def hmp_command(self, cmd):
-        hmpcmd = json.dumps({'execute': 'human-monitor-command', 'arguments': {'command-line': cmd}})
-        self.sock.sendall(hmpcmd.encode())
-        time.sleep(0.1) # wait for listen to capture data and place it in responses dictionary
-        data = self.responses.pop(-1)
-        return data
-    
+        if self.isSockValid():
+            hmpcmd = json.dumps({'execute': 'human-monitor-command', 'arguments': {'command-line': cmd}})
+            self.sock.sendall(hmpcmd.encode())
+            time.sleep(0.1) # wait for listen to capture data and place it in responses dictionary
+            data = self.responses.pop(-1)
+            return data
+        return None
+
+    def reconnect(self, host, port):
+        try:
+            self.sock.close()
+            self.sock_sem.acquire()
+            self.isValid = False
+            self.sock_sem.release()
+        except:
+            pass
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.connect((host, port))
+
+            self.sock_sem.acquire()
+            self.isValid = True
+            self.sock_sem.release()
+
+            self.command('qmp_capabilities')
+            self.listen() # pluck empty return object
+            self.command('query-status')
+        except Exception as e:
+            print(e)
+        
+    def isSockValid(self):
+        self.sock_sem.acquire()
+        ret = self.isValid
+        self.sock_sem.release()
+        return ret
+
     @property
     def running(self):
         return self._running
