@@ -170,6 +170,8 @@ class MemDumpWindow(QWidget):
 
 
     def update_text(self, value):
+        if self.sem.available() > 0: # semaphore must be held before entering this function
+            return
         f = None
         try: 
             f = open('/tmp/QEMUGUI-memdump', 'rb')
@@ -178,6 +180,10 @@ class MemDumpWindow(QWidget):
         except: # possibly an empty return for another function
             if f:
                 f.close()
+            print('*****Error*****')
+            self.chr_display.verticalScrollBar().valueChanged.connect(self.handle_scroll)
+            self.sem.release()
+            return
         
         s = [''] * ceil((len(byte) // 16)) # hex representation of memory
         addresses =  '' # addresses
@@ -187,7 +193,6 @@ class MemDumpWindow(QWidget):
         self.maxAddress = max(count + len(byte), self.maxAddress)
         first = True
         chars = [''] * len(s) # char represenation of memory
-
         index = 0
         self.endian_sem.acquire()
         for b in byte:
@@ -203,12 +208,12 @@ class MemDumpWindow(QWidget):
             if self.endian == Endian.big:
                 # line_s += f'0x{b:02x} ' 
                 # line_c += f'{char_convert(b):3}'
-                s[index] += f'0x{b:02x} '
+                s[index] += f'{b:02x} '
                 chars[index] += f'{char_convert(b):3}'
             elif self.endian == Endian.little:
                 # line_s = f'0x{b:02x} ' + line_s
                 # line_c = f'{char_convert(b):3}' + line_c
-                s[index] = f'0x{b:02x} ' + s[index]
+                s[index] = f'{b:02x} ' + s[index]
                 chars[index] = f'{char_convert(b):3}' + chars[index]
         self.endian_sem.release()
 
@@ -284,6 +289,7 @@ class MemDumpWindow(QWidget):
         if size < 0:
             size = constants['block_size']
         
+
         self.sem.acquire()
 
         val = val - (val % 16)
