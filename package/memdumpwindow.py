@@ -23,12 +23,12 @@ class MemDumpWindow(QWidget):
 
     kill_signal = Signal(bool)
 
-    def __init__(self, qmp):
+    def __init__(self, qmp, base=0, max=constants['block_size']):
         super().__init__()
         self.init_ui()
 
-        self.baseAddress = 0
-        self.maxAddress = 0
+        self.baseAddress = base
+        self.maxAddress = min(max, constants['block_size'] + base)
         
         self.delta = 4 # adds a small buffer area for scrolling action to happen
 
@@ -139,9 +139,9 @@ class MemDumpWindow(QWidget):
 
 
     def finish_init(self, size):
-        self.max_size = size
+        self.max_size = 0xfffffffffffffff
         self.qmp.emptyReturn.connect(self.update_text)
-        self.grab_data()
+        self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress)
 
         if not self.t:
             self.t = MyThread(self)

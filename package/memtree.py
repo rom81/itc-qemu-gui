@@ -3,11 +3,15 @@ from package.qmpwrapper import QMP
 from package.constants import constants
 from PySide2.QtCore import QSemaphore, QSize
 from PySide2.QtGui import QFont
+from package.memdumpwindow import MemDumpWindow
+
 class MemTree(QWidget):
-	def __init__(self, qmp):
+	def __init__(self, qmp, parent):
 		super().__init__()
 		self.qmp = qmp
 		self.qmp.memoryMap.connect(self.update_tree)
+
+		self.parent = parent
 
 		self.tree_sem = QSemaphore(1)
 		self.sending_sem = QSemaphore(1) # used to prevent sending too many requests at once
@@ -24,6 +28,7 @@ class MemTree(QWidget):
 
 		self.tree = QTreeWidget()
 		self.tree.itemClicked.connect(self.expand_item)
+		self.tree.itemDoubleClicked.connect(self.open_region)
 		self.tree.itemCollapsed.connect(self.collapse_item)
 		self.tree.setColumnCount(3)
 		self.tree.header().setSectionResizeMode(QHeaderView.ResizeToContents)
@@ -94,8 +99,8 @@ class MemTree(QWidget):
 					start = start + (1 << constants['bits'])
 				if end < 0:
 					end = end + (1 << constants['bits'])
-				node.setText(1, f'0x{start:016x}')
-				node.setText(2, f'0x{end:016x}')
+				node.setText(1, f'{start:016x}')
+				node.setText(2, f'{end:016x}')
 				node.setFont(0, QFont('Courier New'))
 				node.setFont(1, QFont('Courier New'))
 				node.setFont(2, QFont('Courier New'))
@@ -103,3 +108,6 @@ class MemTree(QWidget):
 			if type(parent) is QTreeWidgetItem and not parent_node.isExpanded():
 					parent_node.setExpanded(True)
 			self.tree_sem.release()
+
+	def open_region(self, node, col):
+		self.parent.open_new_window(MemDumpWindow(self.qmp, base=int(node.text(1), 16), max=int(node.text(2), 16)))

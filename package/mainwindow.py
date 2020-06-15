@@ -99,7 +99,7 @@ class MainWindow(QMainWindow):
         errors = QAction("Error Log", self)
         tools.addAction(errors)
 
-        tree = QAction("Memory Tree", self, triggered=(lambda: self.open_new_window(MemTree(self.qmp)) if self.qmp.isSockValid() else None))
+        tree = QAction("Memory Tree", self, triggered=(lambda: self.open_new_window(MemTree(self.qmp, self)) if self.qmp.isSockValid() else None))
         tools.addAction(tree)
 
         # Help Menu Options 
