@@ -47,12 +47,12 @@ class QMP(threading.Thread, QtCore.QObject):
                 self.running = data['return']['running']
             elif 'return' in data and len(data['return']) == 0:
                 self.empty_return = True
-            elif 'return' in data and 'memorymap' in data['return']:
+            elif 'return' in data and type(data['return']) == list and len(data['return']) > 0 and 'name' in data['return'][0]:
                 self.memorymap = data['return']
             elif 'return' in data and 'time_ns' in data['return']:
                 self.time = data['return']['time_ns']
             elif 'return' in data and 'base-memory' in data['return']:
-                self.mem_size = data['return']['base-memory']
+                self.mem_size = data['return']['base-memory']                
 
 
     def listen(self):

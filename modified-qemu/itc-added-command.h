@@ -1,0 +1,1 @@
+MemoryMapEntryList *qmp_mtree_helper(MemoryRegion *parent, MemoryMapEntryList *mm_list);

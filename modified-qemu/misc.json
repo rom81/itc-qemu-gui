@@ -1761,17 +1761,8 @@
 # Since 4.2
 ##
 { 'struct': 'MemoryMapEntry',
-  'data': {'name': 'str', 'start': 'int', 'end': 'int' } }
+  'data': {'name': 'str', 'start': 'int', 'end': 'int', 'parent': 'str' } }
 
-##
-# @MTreeReturn:
-#
-# Return type for mtree. Parent is the name that was searched for and MemoryMap is the subregions.
-#
-# Since 4.2
-##
-{ 'struct': 'MTreeReturn',
-  'data': {'parent': 'str', 'memorymap': ['MemoryMapEntry']} }
 
 ##
 # @mtree:
@@ -1780,7 +1771,7 @@
 #
 # Since: 4.2
 ##
-{ 'command': 'mtree', 'data': {'*name': 'str' }, 'returns': 'MTreeReturn' }
+{ 'command': 'mtree', 'returns': ['MemoryMapEntry'] }
 
 ##
 # @ClockType:
