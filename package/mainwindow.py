@@ -31,7 +31,7 @@ class MainWindow(QMainWindow):
         self.t = TimeThread(self.qmp)
         
 
-        self.window = {}
+        self.window = []
 
     def init_ui(self):
 
@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
 
     def open_new_window(self, new_window):
         if self.qmp.isSockValid():
-            self.window[type(new_window).__name__] = new_window # this way the old instance get fully reaped
+            self.window.append(new_window)
 
     def update_time(self, time):
         date = datetime.fromtimestamp(time / 1000000000)

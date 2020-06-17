@@ -7,7 +7,7 @@ import time
 class QMP(threading.Thread, QtCore.QObject):
 
     stateChanged = QtCore.Signal(bool)
-    emptyReturn = QtCore.Signal(bool)
+    pmem = QtCore.Signal(list)
     memoryMap = QtCore.Signal(list)
     timeUpdate = QtCore.Signal(tuple)
     memSizeInfo = QtCore.Signal(int)
@@ -29,7 +29,7 @@ class QMP(threading.Thread, QtCore.QObject):
 
         # QMP setup
         self._running = False
-        self._empty_return = None
+        self._p_mem = None
         self._time = None
         self._mem_size = None
         
@@ -45,14 +45,14 @@ class QMP(threading.Thread, QtCore.QObject):
             # Handle Status Return Messages
             elif 'return' in data and 'running' in data['return']:
                 self.running = data['return']['running']
-            elif 'return' in data and len(data['return']) == 0:
-                self.empty_return = True
+            elif 'return' in data and 'hash' in data['return'] and 'vals' in data['return']:
+                self.p_mem = data['return']
             elif 'return' in data and type(data['return']) == list and len(data['return']) > 0 and 'name' in data['return'][0]:
                 self.memorymap = data['return']
             elif 'return' in data and 'time_ns' in data['return']:
                 self.time = data['return']['time_ns']
             elif 'return' in data and 'base-memory' in data['return']:
-                self.mem_size = data['return']['base-memory']                
+                self.mem_size = data['return']['base-memory']              
 
 
     def listen(self):
@@ -126,13 +126,13 @@ class QMP(threading.Thread, QtCore.QObject):
         
 
     @property
-    def empty_return(self):
-        return self._empty_return
+    def p_mem(self):
+        return self._p_mem
 
-    @empty_return.setter
-    def empty_return(self, value):
-        self._empty_return = value
-        self.emptyReturn.emit(value)
+    @p_mem.setter
+    def p_mem(self, value):
+        self._p_mem = value
+        self.pmem.emit(value)
 
 
     @property

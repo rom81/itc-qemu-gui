@@ -6,6 +6,7 @@ from enum import Enum
 from package.constants import constants
 import time
 from math import ceil
+from random import randint
 
 def char_convert(byte):
     if byte in range(127):
@@ -28,7 +29,7 @@ class MemDumpWindow(QWidget):
         self.init_ui()
 
         self.baseAddress = base
-        self.maxAddress = min(max, constants['block_size'] + base)
+        self.maxAddress = self.baseAddress
         
         self.delta = 4 # adds a small buffer area for scrolling action to happen
 
@@ -43,15 +44,24 @@ class MemDumpWindow(QWidget):
         self.endian_sem = QSemaphore(1)
 
         self.qmp = qmp
-        
-        self.t = None
+
+        self.hash = randint(0, 0xfffffffffffffff)
 
         icon = QIcon('package/icons/nasa.png')
         self.setWindowIcon(icon)
 
-        self.max_size = 0
-        self.qmp.memSizeInfo.connect(self.finish_init)
-        self.qmp.command('query-memory-size-summary')
+        self.max_size = 0xfffffffffffffff
+
+        self.qmp.pmem.connect(self.update_text)
+        self.grab_data(val=self.baseAddress, size=min(max, constants['block_size'] + base)-self.baseAddress)
+
+        self.t = MyThread(self)
+        self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, refresh=True))
+        self.qmp.stateChanged.connect(self.t.halt)
+        self.t.running = self.qmp.running
+        self.t.start()
+
+        self.show()
         
 
     def init_ui(self):   
@@ -138,22 +148,6 @@ class MemDumpWindow(QWidget):
         self.setGeometry(100, 100, 1550, 500)
 
 
-    def finish_init(self, size):
-        self.max_size = 0xfffffffffffffff
-        self.qmp.emptyReturn.connect(self.update_text)
-        self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress)
-
-        if not self.t:
-            self.t = MyThread(self)
-            self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, refresh=True))
-            self.qmp.stateChanged.connect(self.t.halt)
-            self.t.running = self.qmp.running
-            self.t.start()
-
-        self.qmp.memSizeInfo.disconnect(self.finish_init)
-        self.show() 
-
-
     def auto_refresh_check(self, value):
         if self.auto_refresh.checkState() == Qt.CheckState.Checked and not self.t.isRunning():
             self.t = MyThread(self)
@@ -165,25 +159,14 @@ class MemDumpWindow(QWidget):
 
     def closeEvent(self, event):
         self.kill_signal.emit(True)
-        self.qmp.emptyReturn.disconnect(self.update_text)
+        self.qmp.pmem.disconnect(self.update_text)
         event.accept()
 
 
     def update_text(self, value):
-        if self.sem.available() > 0: # semaphore must be held before entering this function
+        if not value or value['hash'] != self.hash: # semaphore must be held before entering this function
             return
-        f = None
-        try: 
-            f = open('/tmp/QEMUGUI-memdump', 'rb')
-            byte = f.read()
-            f.close()
-        except: # possibly an empty return for another function
-            if f:
-                f.close()
-            print('*****Error*****')
-            self.chr_display.verticalScrollBar().valueChanged.connect(self.handle_scroll)
-            self.sem.release()
-            return
+        byte = value['vals']
         
         s = [''] * ceil((len(byte) // 16)) # hex representation of memory
         addresses =  '' # addresses
@@ -196,6 +179,7 @@ class MemDumpWindow(QWidget):
         index = 0
         self.endian_sem.acquire()
         for b in byte:
+            b = b['val']
             if count % 16 == 0:
                 if first:
                     addresses += f'0x{count:08x}' 
@@ -222,7 +206,7 @@ class MemDumpWindow(QWidget):
 
         scroll_goto = self.pos
 
-        if self.pos >= self.max - self.delta:  # scrolling down
+        if self.pos > self.max - self.delta:  # scrolling down
             self.addresses.append(addresses)
             self.mem_display.append(s)
             self.chr_display.append(chars)
@@ -264,7 +248,7 @@ class MemDumpWindow(QWidget):
         self.sem.release()
 
 
-    def grab_data(self, val=0, size=constants['block_size'], refresh=False):         
+    def grab_data(self, val=0, size=constants['block_size'], refresh=False):       
         if val == None:
             val = 0
         if size == None:
@@ -318,11 +302,11 @@ class MemDumpWindow(QWidget):
             self.highlight_sem.release()
 
         args = {
-                'val': val,
+                'addr': val,
                 'size': size,
-                'filename': '/tmp/QEMUGUI-memdump'
+                'hash': self.hash
                 }
-        self.qmp.command('pmemsave', args=args)
+        self.qmp.command('get-pmem', args=args)
 
 
     def find(self, addr, size):
@@ -420,7 +404,7 @@ class MemDumpWindow(QWidget):
             if self.baseAddress < size:
                 size = self.baseAddress
             self.grab_data(val=self.baseAddress-size, size=size)
-        elif self.chr_display.verticalScrollBar().value() >= self.chr_display.verticalScrollBar().maximum() - self.delta and self.maxAddress <= self.max_size:
+        elif self.chr_display.verticalScrollBar().value() > self.chr_display.verticalScrollBar().maximum() - self.delta and self.maxAddress <= self.max_size:
             self.grab_data(val=self.maxAddress)
       
       
