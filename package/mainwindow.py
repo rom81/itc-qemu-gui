@@ -133,14 +133,18 @@ class MainWindow(QMainWindow):
         self.time.setFont(QFont('Courier New'))
         grid.addWidget(self.time, 0, 2)
 
+        self.connect = QPushButton("Connect")
+        self.connect.setCheckable(True)
+        self.connect.clicked.connect(self.qmp_start)
+
         self.host = QLineEdit()
+        self.host.returnPressed.connect(lambda: self.connect.click() if not self.connect.isChecked() else None)
         grid.addWidget(self.host, 1, 0)
 
         self.port = QLineEdit()
+        self.port.returnPressed.connect(lambda: self.connect.click() if not self.connect.isChecked() else None)
         grid.addWidget(self.port, 1, 1)
 
-        self.connect = QPushButton("Connect")
-        self.connect.clicked.connect(self.qmp_start)
         grid.addWidget(self.connect, 1, 2)
 
         # Check if QMP is running initially

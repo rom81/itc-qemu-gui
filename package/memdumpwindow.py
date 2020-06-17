@@ -1,5 +1,5 @@
 from PySide2.QtCore import QSize, Slot, Qt, QSemaphore, QThread, Signal
-from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QLabel, QTextEdit, QPushButton, QRadioButton, QCheckBox, QSplitter
+from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QLabel, QTextEdit, QPushButton, QRadioButton, QCheckBox, QSplitter, QFileDialog
 from package.qmpwrapper import QMP
 from PySide2.QtGui import QFont, QTextCharFormat, QTextCursor, QIcon
 from enum import Enum
@@ -7,6 +7,7 @@ from package.constants import constants
 import time
 from math import ceil
 from random import randint
+
 
 def char_convert(byte):
     if byte in range(127):
@@ -57,9 +58,9 @@ class MemDumpWindow(QWidget):
 
         self.t = MyThread(self)
         self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, refresh=True))
-        self.qmp.stateChanged.connect(self.t.halt)
-        self.t.running = self.qmp.running
-        self.t.start()
+        # self.qmp.stateChanged.connect(self.t.halt)
+        # self.t.running = self.qmp.running
+        # self.t.start()
 
         self.show()
         
@@ -87,6 +88,10 @@ class MemDumpWindow(QWidget):
         self.refresh.clicked.connect(lambda:self.grab_data(val=self.address.text(), size=self.size.text(), refresh=True))
         self.hbox.addWidget(self.refresh)
 
+        self.save = QPushButton('Save')
+        self.save.clicked.connect(lambda: self.save_to_file())
+        self.hbox.addWidget(self.save)
+
         self.auto_refresh = QCheckBox('Auto Refresh')
         self.auto_refresh.setCheckState(Qt.CheckState.Checked)
         self.auto_refresh.stateChanged.connect(self.auto_refresh_check)
@@ -111,6 +116,7 @@ class MemDumpWindow(QWidget):
         self.mem_display.setCurrentFont(QFont('Courier New'))
         self.mem_display.setGeometry(0,0,600,500)
         self.lower_hbox.addWidget(self.mem_display)
+        
         # textbox for char display of memory
         self.chr_display = QTextEdit()
         self.chr_display.setReadOnly(True)
@@ -146,6 +152,17 @@ class MemDumpWindow(QWidget):
         self.setLayout(self.vbox)
         self.setWindowTitle("Memory Dump")
         self.setGeometry(100, 100, 1550, 500)
+
+
+    def save_to_file(self):
+        filename = QFileDialog().getSaveFileName(self, 'Save', '.')
+        args = {
+            'val': self.baseAddress,
+            'size': self.maxAddress - self.baseAddress,
+            'filename': filename[0]
+        }
+        self.qmp.command('pmemsave', args=args)
+
 
 
     def auto_refresh_check(self, value):
