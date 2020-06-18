@@ -58,9 +58,9 @@ class MemDumpWindow(QWidget):
 
         self.t = MyThread(self)
         self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, refresh=True))
-        # self.qmp.stateChanged.connect(self.t.halt)
-        # self.t.running = self.qmp.running
-        # self.t.start()
+        self.qmp.stateChanged.connect(self.t.halt)
+        self.t.running = self.qmp.running
+        self.t.start()
 
         self.show()
         
@@ -177,6 +177,8 @@ class MemDumpWindow(QWidget):
     def closeEvent(self, event):
         self.kill_signal.emit(True)
         self.qmp.pmem.disconnect(self.update_text)
+        while self.sem.tryAcquire(1,1):
+            self.sem.release(1000)
         event.accept()
 
 

@@ -11,6 +11,7 @@ class QMP(threading.Thread, QtCore.QObject):
     memoryMap = QtCore.Signal(list)
     timeUpdate = QtCore.Signal(tuple)
     memSizeInfo = QtCore.Signal(int)
+    connectionChange = QtCore.Signal(bool)
 
     def __init__(self):
 
@@ -32,7 +33,7 @@ class QMP(threading.Thread, QtCore.QObject):
         self._p_mem = None
         self._time = None
         self._mem_size = None
-        
+        self._connected = False
     def run(self):
         while True:
             data = self.listen()
@@ -42,6 +43,8 @@ class QMP(threading.Thread, QtCore.QObject):
                     self.running = False
                 elif data['event'] == 'RESUME': 
                     self.running = True
+                elif data['event'] == 'SHUTDOWN':
+                    self.sock_disconnect()
             # Handle Status Return Messages
             elif 'return' in data and 'running' in data['return']:
                 self.running = data['return']['running']
@@ -52,14 +55,16 @@ class QMP(threading.Thread, QtCore.QObject):
             elif 'return' in data and 'time_ns' in data['return']:
                 self.time = data['return']['time_ns']
             elif 'return' in data and 'base-memory' in data['return']:
-                self.mem_size = data['return']['base-memory']              
-
+                self.mem_size = data['return']['base-memory']                   
 
     def listen(self):
         if self.isSockValid():
             total_data = bytearray() # handles large returns
-            while True:
-                data = self.sock.recv(1024)
+            while self.connected:
+                try:
+                    data = self.sock.recv(1024)
+                except OSError:
+                    return ''
                 total_data.extend(data)
                 if len(data) < 1024:
                     break
@@ -76,39 +81,63 @@ class QMP(threading.Thread, QtCore.QObject):
             qmpcmd = json.dumps({'execute': cmd})
             if args:
                 qmpcmd = json.dumps({'execute': cmd, 'arguments': args})
-            self.sock.sendall(qmpcmd.encode())
+            try:
+                self.sock.sendall(qmpcmd.encode())
+            except BrokenPipeError:
+                if self.isSockValid():
+                    self.sock_disconnect()
 
     def hmp_command(self, cmd):
         if self.isSockValid():
             hmpcmd = json.dumps({'execute': 'human-monitor-command', 'arguments': {'command-line': cmd}})
-            self.sock.sendall(hmpcmd.encode())
+            try:
+                self.sock.sendall(hmpcmd.encode())
+            except BrokenPipeError:
+                if self.isSockValid():
+                    self.sock_disconnect()
+                    return None
             time.sleep(0.1) # wait for listen to capture data and place it in responses dictionary
             data = self.responses.pop(-1)
             return data
         return None
 
-    def reconnect(self, host, port):
+    def sock_disconnect(self):
         try:
+            self.sock_sem.acquire()
             self.sock.close()
-            self.sock_sem.acquire()
+            self.sock = None
             self.isValid = False
-            self.sock_sem.release()
-        except:
-            pass
-        try:
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.connect((host, port))
-
-            self.sock_sem.acquire()
-            self.isValid = True
-            self.sock_sem.release()
-
-            self.command('qmp_capabilities')
-            self.listen() # pluck empty return object
-            self.command('query-status')
-        except Exception as e:
+            self.connected = False
+            self.running = False
+        except OSError as e:
             print(e)
-        
+        finally:
+            self.sock_sem.release()
+
+    def sock_connect(self, host, port):
+        try:
+            self.sock_sem.acquire()
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.settimeout(1)
+            self.sock.connect((host, port))
+            self.isValid = True
+            self.connected = True
+        except OSError as e:
+            print(e)
+            self.isValid = False
+            self.connected = False
+        finally:
+            self.sock_sem.release()
+
+        self.command('qmp_capabilities')
+        if not self.isAlive():
+            self.listen() # pluck empty return object
+        self.command('query-status')
+ 
+    def reconnect(self, host, port):
+        self.sock_disconnect()
+        self.sock_connect(host, port)
+              
     def isSockValid(self):
         self.sock_sem.acquire()
         ret = self.isValid
@@ -163,3 +192,13 @@ class QMP(threading.Thread, QtCore.QObject):
     def mem_size(self, value):
         self._mem_size = value
         self.memSizeInfo.emit(value)
+
+
+    @property
+    def connected(self):
+        return self._connected
+
+    @connected.setter
+    def connected(self, value):
+        self._connected = value
+        self.connectionChange.emit(value)

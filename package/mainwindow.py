@@ -23,6 +23,7 @@ class MainWindow(QMainWindow):
         #self.qmp.start()
 
         self.qmp.stateChanged.connect(self.handle_pause_button)
+        self.qmp.connectionChange.connect(self.handle_connect_button)
 
         super().__init__()
         self.init_ui()
@@ -160,6 +161,12 @@ class MainWindow(QMainWindow):
         # Catches signals from QMPWrapper
         self.pause_button.setChecked(not value)
 
+    def handle_connect_button(self, value):
+        self.connect.setChecked(value)
+        self.host.setReadOnly(value)
+        self.port.setReadOnly(value)
+
+
     def open_new_window(self, new_window):
         if self.qmp.isSockValid():
             self.window.append(new_window)
@@ -169,7 +176,11 @@ class MainWindow(QMainWindow):
         self.time.setText(f'Time: {date.day - 1:02}:{date.hour:02}:{date.minute:02}:{date.second:02}') # -1 for day because it starts from 1
 
     def qmp_start(self):
-        self.qmp.reconnect(self.host.text(), int(self.port.text()))
+        if self.qmp.isSockValid():
+            self.qmp.sock_disconnect()
+            return
+        else:
+            self.qmp.sock_connect(self.host.text(), int(self.port.text()))
         if not self.qmp.isAlive():
             self.qmp.start()
         if not self.t.isAlive():
