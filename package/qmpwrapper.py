@@ -12,6 +12,8 @@ class QMP(threading.Thread, QtCore.QObject):
     timeUpdate = QtCore.Signal(tuple)
     memSizeInfo = QtCore.Signal(int)
     connectionChange = QtCore.Signal(bool)
+    newData = QtCore.Signal(dict)
+
 
     def __init__(self):
 
@@ -34,6 +36,8 @@ class QMP(threading.Thread, QtCore.QObject):
         self._time = None
         self._mem_size = None
         self._connected = False
+        self._newdata = None
+
     def run(self):
         while True:
             data = self.listen()
@@ -55,7 +59,9 @@ class QMP(threading.Thread, QtCore.QObject):
             elif 'return' in data and 'time_ns' in data['return']:
                 self.time = data['return']['time_ns']
             elif 'return' in data and 'base-memory' in data['return']:
-                self.mem_size = data['return']['base-memory']                   
+                self.mem_size = data['return']['base-memory']        
+
+            self.newdata = data           
 
     def listen(self):
         if self.isSockValid():
@@ -202,3 +208,13 @@ class QMP(threading.Thread, QtCore.QObject):
     def connected(self, value):
         self._connected = value
         self.connectionChange.emit(value)
+
+
+    @property
+    def newdata(self):
+        return self._newdata
+
+    @newdata.setter
+    def newdata(self, value):
+        self._newdata = value
+        self.newData.emit(value)

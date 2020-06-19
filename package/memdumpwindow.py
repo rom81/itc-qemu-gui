@@ -177,8 +177,12 @@ class MemDumpWindow(QWidget):
     def closeEvent(self, event):
         self.kill_signal.emit(True)
         self.qmp.pmem.disconnect(self.update_text)
-        while self.sem.tryAcquire(1,1):
-            self.sem.release(1000)
+        print('closing')
+        while True:
+            if self.sem.tryAcquire(1, 1):
+                break
+            self.sem.release(10)
+        print('closed')
         event.accept()
 
 
@@ -323,7 +327,8 @@ class MemDumpWindow(QWidget):
         args = {
                 'addr': val,
                 'size': size,
-                'hash': self.hash
+                'hash': self.hash,
+                'grouping': 1
                 }
         self.qmp.command('get-pmem', args=args)
 

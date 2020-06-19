@@ -14,11 +14,12 @@ import threading
 import time
 from datetime import datetime
 
-
+from yapsy.PluginManager import PluginManager
+import logging
 class MainWindow(QMainWindow):
 
     def __init__(self):
- 
+        #logging.basicConfig(level=logging.DEBUG)
         self.qmp = QMP()
         #self.qmp.start()
 
@@ -102,10 +103,20 @@ class MainWindow(QMainWindow):
 
         tree = QAction("Memory Tree", self, triggered=(lambda: self.open_new_window(MemTree(self.qmp, self)) if self.qmp.isSockValid() else None))
         tools.addAction(tree)
-
+        self.addPlugins(tools)
         # Help Menu Options 
         usage = QAction("Usage Guide", self)
         help_.addAction(usage)
+
+    def addPlugins(self, menu):
+        plugins = menu.addMenu('Plugins')
+        self.manager = PluginManager()
+        self.manager.setPluginPlaces(['plugins'])
+        self.manager.locatePlugins()
+        self.manager.loadPlugins()
+        for plugin in self.manager.getAllPlugins():
+            plugins.addAction(QAction(plugin.name, self, triggered=(lambda: self.open_new_window(plugin.plugin_object.display(self.qmp)) if self.qmp.isSockValid() else None)))
+        
 
     def grid_layout(self):
         
