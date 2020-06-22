@@ -6,7 +6,7 @@ from PySide2.QtCore import QSize, Slot
 
 from package.memdumpwindow import MemDumpWindow
 from package.registerview import RegisterView
-
+from package.assemblywindow import AssemblyWindow
 from package.qmpwrapper import QMP
 from package.memtree import MemTree
 
@@ -89,7 +89,7 @@ class MainWindow(QMainWindow):
         hexdmp = QAction("Memory Dump", self, triggered=(lambda: self.open_new_window(MemDumpWindow(self.qmp)) if self.qmp.isSockValid() else None))
         tools.addAction(hexdmp)
 
-        asm = QAction("Assembly View", self)
+        asm = QAction("Assembly View", self, triggered=(lambda: self.open_new_window(AssemblyWindow(self.qmp)) if self.qmp.isSockValid() else None))
         tools.addAction(asm)
 
         registers = QAction("Register View", self, triggered=(lambda: self.open_new_window(RegisterView(self.qmp)) if self.qmp.isSockValid() else None))
