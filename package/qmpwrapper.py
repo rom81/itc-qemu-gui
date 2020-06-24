@@ -116,7 +116,7 @@ class QMP(threading.Thread, QtCore.QObject):
             self.connected = False
             self.running = False
         except OSError as e:
-            print(e)
+            pass
         finally:
             self.sock_sem.release()
 
@@ -129,7 +129,6 @@ class QMP(threading.Thread, QtCore.QObject):
             self.isValid = True
             self.connected = True
         except OSError as e:
-            print(e)
             self.isValid = False
             self.connected = False
         finally:

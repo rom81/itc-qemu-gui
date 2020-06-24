@@ -12,7 +12,7 @@ from package.memtree import MemTree
 
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 from yapsy.PluginManager import PluginManager
 import logging
@@ -183,7 +183,8 @@ class MainWindow(QMainWindow):
             self.window.append(new_window)
 
     def update_time(self, time):
-        date = datetime.fromtimestamp(time / 1000000000)
+        print(time)
+        date = datetime.fromtimestamp(time / 1000000000, timezone.utc)
         self.time.setText(f'Time: {date.day - 1:02}:{date.hour:02}:{date.minute:02}:{date.second:02}') # -1 for day because it starts from 1
 
     def qmp_start(self):
@@ -191,7 +192,11 @@ class MainWindow(QMainWindow):
             self.qmp.sock_disconnect()
             return
         else:
-            self.qmp.sock_connect(self.host.text(), int(self.port.text()))
+            s = self.port.text()
+            if s.isnumeric():
+                self.qmp.sock_connect(self.host.text(), int(s))
+            else:
+                self.connect.setChecked(False)
         if not self.qmp.isAlive():
             self.qmp.start()
         if not self.t.isAlive():
