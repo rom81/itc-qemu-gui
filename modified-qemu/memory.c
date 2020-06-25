@@ -35,6 +35,7 @@
 #include "hw/boards.h"
 #include "migration/vmstate.h"
 #include <string.h>
+#include "itc-added-command.h"
 //#define DEBUG_UNASSIGNED
 
 static unsigned memory_region_transaction_depth;
@@ -3144,74 +3145,66 @@ void mtree_info(bool flatview, bool dispatch_tree, bool owner)
     }
 }
 
-MTreeReturn *qmp_mtree(bool has_name, const char *name, Error **errp)
-{
-    MemoryMapEntryList *mm_list = NULL;
-    MTreeReturn *ret = g_malloc0(sizeof(MTreeReturn));
-    ret->parent = g_strdup(name);
-    ret->memorymap = NULL;
-    //MemoryRegionListHead ml_head;
-    //MemoryRegionList *ml, *ml2;
-    AddressSpace *as;
-    if(has_name) {
-        char n[strlen(name)];
-        strcpy(n, name);
-        const char *delim = "?";
-        //QTAILQ_INIT(&ml_head);
-        char *token = strtok(n, delim);
-        if(!token) {
-            QTAILQ_FOREACH(as, &address_spaces, address_spaces_link) {
+MemoryMapEntryList *qmp_mtree_helper(MemoryRegion *parent, MemoryMapEntryList *mm_list) {
+    if(parent) { // subregions
+        MemoryRegion *child;
+        QTAILQ_FOREACH(child, &parent->subregions, subregions_link) {
+            if(child->enabled) {
                 MemoryMapEntryList *temp = g_malloc0(sizeof(*temp));
                 temp->value = g_malloc0(sizeof(*temp->value));
-                temp->value->name = g_strdup(as->name);
-                temp->value->start = as->root->addr;
-                temp->value->end = temp->value->start + MR_SIZE(as->root->size);
+                temp->value->name = g_strdup(memory_region_name(child));
+                temp->value->start = child->addr;
+                temp->value->end = temp->value->start + MR_SIZE(child->size);
+                temp->value->parent = g_strdup(memory_region_name(parent));
                 temp->next = mm_list;
                 mm_list = temp;
+                mm_list = qmp_mtree_helper(child, mm_list);
             }
         }
-        else {
-            QTAILQ_FOREACH(as, &address_spaces, address_spaces_link) {
-                if(!strcmp(as->name, token)) {
-                    break;
-                }
-            }
-            MemoryRegion *mr = as->root;
-            token = strtok(NULL, delim);
+    }
+    else { // top level memory regions
+        AddressSpace *as;
+        //MemoryRegionListHead ml_head;
+        //MemoryRegionList *ml, *ml2;
+        QTAILQ_FOREACH(as, &address_spaces, address_spaces_link) {
+            MemoryMapEntryList *temp = g_malloc0(sizeof(*temp));
+            temp->value = g_malloc0(sizeof(*temp->value));
+            temp->value->name = g_strdup(as->name);
+            temp->value->start = as->root->addr;
+            temp->value->end = temp->value->start + MR_SIZE(as->root->size);
+            temp->value->parent = NULL;
+            temp->next = mm_list;
+            mm_list = temp;
 
-            while(token) {
-                MemoryRegion *temp;
-                bool found = false;     
-                QTAILQ_FOREACH(temp, &mr->subregions, subregions_link) {
-                    if(!strcmp(memory_region_name(temp), token)) {
-                        mr = temp;
-                        found = true;
-                        break;
-                    }
-                }
-                if(!found) {
-                    return ret;
-                }
-                token = strtok(NULL, delim);
-            }
-            MemoryRegion *temp;
-                QTAILQ_FOREACH(temp, &mr->subregions, subregions_link) {
-                    MemoryMapEntryList *t = g_malloc0(sizeof(*t));
-                    t->value = g_malloc0(sizeof(*t->value));
-                    t->value->name = g_strdup(memory_region_name(temp));
-                    t->value->start = temp->addr;
-                    t->value->end = t->value->start + MR_SIZE(temp->size);
-                    t->next = mm_list;
-                    mm_list = t;
-                }
+            MemoryMapEntryList *temp2 = g_malloc0(sizeof(*temp2));
+            temp2->value = g_malloc0(sizeof(*temp2->value));
+            temp2->value->name = g_strdup(memory_region_name(as->root));
+            temp2->value->start = as->root->addr;
+            temp2->value->end = temp2->value->start + MR_SIZE(as->root->size);
+            temp2->value->parent = g_strdup(as->name);
+            temp2->next = mm_list;
+            mm_list = temp2;
+
+            mm_list = qmp_mtree_helper(as->root, mm_list);
         }
-        ret->memorymap = mm_list;
-        return ret;
     }
-    else {
-        error_setg(errp, "Please provide a name to search.");
-        return ret;
+    return mm_list;
+
+}
+
+MemoryMapEntryList *qmp_mtree(Error **errp)
+{
+    MemoryMapEntryList *mm_list = qmp_mtree_helper(NULL, NULL);
+
+    MemoryMapEntryList *head = mm_list;
+    MemoryMapEntryList *prev = NULL;
+    while(head) {
+        MemoryMapEntryList *temp = head->next;
+        head->next = prev;
+        prev = head;
+        head = temp;
     }
+    return prev;
 }
 
 void memory_region_init_ram(MemoryRegion *mr,

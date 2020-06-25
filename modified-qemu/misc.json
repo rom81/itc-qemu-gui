@@ -1761,26 +1761,16 @@
 # Since 4.2
 ##
 { 'struct': 'MemoryMapEntry',
-  'data': {'name': 'str', 'start': 'int', 'end': 'int' } }
-
-##
-# @MTreeReturn:
-#
-# Return type for mtree. Parent is the name that was searched for and MemoryMap is the subregions.
-#
-# Since 4.2
-##
-{ 'struct': 'MTreeReturn',
-  'data': {'parent': 'str', 'memorymap': ['MemoryMapEntry']} }
+  'data': {'name': 'str', 'start': 'int', 'end': 'int', 'parent': 'str' } }
 
 ##
 # @mtree:
 # 
-# Get address ranges of the subregions of memory of region 'name' 
+# Get address ranges of the regions of memory
 #
 # Since: 4.2
 ##
-{ 'command': 'mtree', 'data': {'*name': 'str' }, 'returns': 'MTreeReturn' }
+{ 'command': 'mtree', 'returns': ['MemoryMapEntry'] }
 
 ##
 # @ClockType:
@@ -1807,3 +1797,30 @@
 { 'command': 'itc-sim-time',
 'data': { 'clock': 'ClockType' },
 'returns': 'SimTime' }
+
+##
+# @MemByte:
+# 
+# Byte of memory
+#
+# Since: 4.2
+##
+{'struct': 'MemByte', 'data': { 'val': 'uint8' } }
+
+##
+# @MemReturn:
+# 
+# List of bytes of memory along with identifying hash.
+#
+# Since: 4.2
+##
+{ 'struct': 'MemReturn', 'data': {'hash': 'int64', 'vals': ['MemByte']} }
+
+##
+# @get-pmem:
+# 
+# Get memory and return it without having to write to a file
+#
+# Since: 4.2
+##
+{ 'command': 'get-pmem', 'data': {'hash': 'int64', 'addr': 'int64', 'size': 'int64'}, 'returns': 'MemReturn' }

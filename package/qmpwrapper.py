@@ -6,10 +6,13 @@ import time
 
 class QMP(threading.Thread, QtCore.QObject):
 
-    stateChanged = QtCore.Signal(str)
-    emptyReturn = QtCore.Signal(bool)
+    stateChanged = QtCore.Signal(bool)
+    pmem = QtCore.Signal(list)
     memoryMap = QtCore.Signal(list)
     timeUpdate = QtCore.Signal(tuple)
+    memSizeInfo = QtCore.Signal(int)
+    connectionChange = QtCore.Signal(bool)
+
     def __init__(self, host, port):
 
         QtCore.QObject.__init__(self)
@@ -20,91 +23,161 @@ class QMP(threading.Thread, QtCore.QObject):
 
         # Socket creation
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((host, port))
 
         self.responses = []
+    
+        self.isValid = False
+        self.sock_sem = QtCore.QSemaphore(1)
+
+        self.banner = None
+
+        self.sock_connect(host, port)
 
         # QMP setup
-        self.command('qmp_capabilities')
-        self.listen() # pluck empty return object
         self.command('query-status')
+
         self._running = None
         self._empty_return = None
         self._time = None
-        
+        self._p_mem = None
+        self._mem_size = None
+        self._connected = False
+    
     def run(self):
         while True:
             data = self.listen()
             if data == 'lost_conn':
-                self.running = 'error'
+                self.running = None
                 break
             # Handle Async QMP Messages 
             if 'timestamp' in data:
                 if data['event'] == 'STOP':
-                    self.running = 'paused'
+                    self.running = False
                 elif data['event'] == 'RESUME': 
-                    self.running = 'running'
+                    self.running = True
+                elif data['event'] == 'SHUTDOWN':
+                    self.sock_disconnect()
             # Handle Status Return Messages
             elif 'return' in data and 'running' in data['return']:
-                if data['return']['running']:
-                    self.running = 'running'
-                else:
-                    self.running = 'paused'
-            elif 'return' in data and len(data['return']) == 0:
-                self.empty_return = True
-            elif 'return' in data and 'memorymap' in data['return']:
+                self.running = data['return']['running']
+            elif 'return' in data and 'hash' in data['return'] and 'vals' in data['return']:
+                self.p_mem = data['return']
+            elif 'return' in data and type(data['return']) == list and len(data['return']) > 0 and 'name' in data['return'][0]:
                 self.memorymap = data['return']
             elif 'return' in data and 'time_ns' in data['return']:
                 self.time = data['return']['time_ns']
+            elif 'return' in data and 'base-memory' in data['return']:
+                self.mem_size = data['return']['base-memory']                   
 
     def listen(self):
-        
-        total_data = bytearray() # handles large returns
-        while True:
-            data = self.sock.recv(1024)
-            if not data:
-                return 'lost_conn'
-            total_data.extend(data)
-            if len(data) < 1024:
-                break
+        if self.isSockValid():            
+            total_data = bytearray() # handles large returns
+            while True:
+                try:
+                    data = self.sock.recv(1024)
+                    if not data:
+                        return 'lost_conn'
+                    total_data.extend(data)
+                    if len(data) < 1024:
+                        break
+                except socket.timeout:
+                    break
 
-        data = total_data.decode().split('\n')[0]
-        data = json.loads(data)
-        self.responses.append(data)
-        return data
-
+            data = total_data.decode().split('\n')[0]
+            if data:
+                data = json.loads(data)
+                if 'return' in data.keys() and 'time_ns' not in data['return']:
+                    self.responses.append(data)
+            return data
+        return None
 
     def command(self, cmd, args=None):
-        qmpcmd = json.dumps({'execute': cmd})
-        if args:
-            qmpcmd = json.dumps({'execute': cmd, 'arguments': args})
-        self.sock.sendall(qmpcmd.encode())
+        if self.isSockValid():
+            qmpcmd = json.dumps({'execute': cmd})
+            if args:
+                qmpcmd = json.dumps({'execute': cmd, 'arguments': args})
+            try:
+                self.sock.sendall(qmpcmd.encode())
+            except BrokenPipeError:
+                if self.isSockValid():
+                    self.sock_disconnect()
 
     def hmp_command(self, cmd):
-        hmpcmd = json.dumps({'execute': 'human-monitor-command', 'arguments': {'command-line': cmd}})
-        self.sock.sendall(hmpcmd.encode())
-        time.sleep(0.1) # wait for listen to capture data and place it in responses dictionary
-        return self.responses[-1]
-    
+        if self.isSockValid():
+            hmpcmd = json.dumps({'execute': 'human-monitor-command', 'arguments': {'command-line': cmd}})
+            try:
+                self.sock.sendall(hmpcmd.encode())
+            except BrokenPipeError:
+                if self.isSockValid():
+                    self.sock_disconnect()
+                    return None
+            time.sleep(0.05) # wait for listen to capture data and place it in responses dictionary
+            data = self.responses.pop(-1)
+            return data
+        return None
+
+    def sock_disconnect(self):
+        try:
+            self.sock_sem.acquire()
+            self.sock.close()
+            self.sock = None
+            self.isValid = False
+            self.connected = False
+            self.running = False
+        except OSError as e:
+            print(e)
+        finally:
+            self.sock_sem.release()
+
+    def sock_connect(self, host, port):
+        try:
+            self.sock_sem.acquire()
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.settimeout(1)
+            self.sock.connect((host, port))
+            self.banner = json.loads(self.sock.recv(256))
+            self.isValid = True
+            self.connected = True
+        except OSError as e:
+            print(e)
+            self.isValid = False
+            self.connected = False
+        finally:
+            self.sock_sem.release()
+
+        self.command('qmp_capabilities')
+        if not self.isAlive():
+            self.listen() # pluck empty return object
+        self.command('query-status')
+ 
+    def reconnect(self, host, port):
+        self.sock_disconnect()
+        self.sock_connect(host, port)
+              
+    def isSockValid(self):
+        self.sock_sem.acquire()
+        ret = self.isValid
+        self.sock_sem.release()
+        return ret
+
     @property
     def running(self):
         return self._running
     
     @running.setter
     def running(self, value):
-        # print('sent: ', value)
         self._running = value
         self.stateChanged.emit(value)
-
+        
 
     @property
-    def empty_return(self):
-        return self._empty_return
+    def p_mem(self):
+        return self._p_mem
 
-    @empty_return.setter
-    def empty_return(self, value):
-        self._empty_return = value
-        self.emptyReturn.emit(value)
+    @p_mem.setter
+    def p_mem(self, value):
+        self._p_mem = value
+        self.pmem.emit(value)
 
 
     @property
@@ -125,4 +198,23 @@ class QMP(threading.Thread, QtCore.QObject):
     def time(self, value):
         self._time = value
         self.timeUpdate.emit(value)
-    
+
+
+    @property
+    def mem_size(self):
+        return self._mem_size
+
+    @mem_size.setter
+    def mem_size(self, value):
+        self._mem_size = value
+        self.memSizeInfo.emit(value)
+
+
+    @property
+    def connected(self):
+        return self._connected
+
+    @connected.setter
+    def connected(self, value):
+        self._connected = value
+        self.connectionChange.emit(value)

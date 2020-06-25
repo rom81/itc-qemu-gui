@@ -1,10 +1,13 @@
 from PySide2.QtCore import QSize, Slot, Qt, QSemaphore, QThread, Signal
-from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QLabel, QTextEdit, QPushButton, QRadioButton, QCheckBox
+from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QLabel, QTextEdit, QPushButton, QRadioButton, QCheckBox, QSplitter, QFileDialog
 from package.qmpwrapper import QMP
-from PySide2.QtGui import QFont, QTextCharFormat, QTextCursor
+from PySide2.QtGui import QFont, QTextCharFormat, QTextCursor, QIcon
 from enum import Enum
 from package.constants import constants
 import time
+from math import ceil
+from random import randint
+
 
 def char_convert(byte):
     if byte in range(127):
@@ -22,12 +25,12 @@ class MemDumpWindow(QWidget):
 
     kill_signal = Signal(bool)
 
-    def __init__(self, qmp):
+    def __init__(self, qmp, base=0, max=constants['block_size']):
         super().__init__()
         self.init_ui()
 
-        self.baseAddress = 0
-        self.maxAddress = 0
+        self.baseAddress = base
+        self.maxAddress = self.baseAddress
         
         self.delta = 4 # adds a small buffer area for scrolling action to happen
 
@@ -42,21 +45,31 @@ class MemDumpWindow(QWidget):
         self.endian_sem = QSemaphore(1)
 
         self.qmp = qmp
-        self.grab_data()
+
+        self.hash = randint(0, 0xfffffffffffffff)
+
+        icon = QIcon('package/icons/nasa.png')
+        self.setWindowIcon(icon)
+
+        self.max_size = 0xfffffffffffffff
+
+        self.qmp.pmem.connect(self.update_text)
+        self.grab_data(val=self.baseAddress, size=min(max, constants['block_size'] + base)-self.baseAddress)
 
         self.t = MyThread(self)
         self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, refresh=True))
+        self.qmp.stateChanged.connect(self.t.halt)
+        self.t.running = self.qmp.running
         self.t.start()
-        self.qmp.emptyReturn.connect(self.update_text)
 
         self.show()
-       
+        
 
     def init_ui(self):   
         self.hbox = QHBoxLayout() # holds widgets for refresh button, desired address, and size to grab
         self.vbox = QVBoxLayout() # main container
-        self.lower_hbox = QHBoxLayout() # holds memory views
-        self.lower_hbox.setSpacing(0)
+        self.lower_hbox = QSplitter() # holds memory views
+        self.lower_container = QHBoxLayout() # holds  lower_hbox and the endian_vbox
         self.endian_vbox = QVBoxLayout()
 
         self.hbox.addWidget(QLabel('Address:'))
@@ -75,6 +88,10 @@ class MemDumpWindow(QWidget):
         self.refresh.clicked.connect(lambda:self.grab_data(val=self.address.text(), size=self.size.text(), refresh=True))
         self.hbox.addWidget(self.refresh)
 
+        self.save = QPushButton('Save')
+        self.save.clicked.connect(lambda: self.save_to_file())
+        self.hbox.addWidget(self.save)
+
         self.auto_refresh = QCheckBox('Auto Refresh')
         self.auto_refresh.setCheckState(Qt.CheckState.Checked)
         self.auto_refresh.stateChanged.connect(self.auto_refresh_check)
@@ -86,31 +103,37 @@ class MemDumpWindow(QWidget):
         self.addresses = QTextEdit()
         self.addresses.setReadOnly(True)
         self.addresses.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.addresses.setMinimumWidth(150)
+        self.addresses.setLineWrapMode(QTextEdit.NoWrap)
         self.addresses.setCurrentFont(QFont('Courier New'))
+        self.addresses.setGeometry(0,0,150,500)
         self.lower_hbox.addWidget(self.addresses)
 
         # textbox for hex display of memory
         self.mem_display = QTextEdit()
         self.mem_display.setReadOnly(True)
         self.mem_display.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.mem_display.setMinimumWidth(800)
+        self.mem_display.setLineWrapMode(QTextEdit.NoWrap)
         self.mem_display.setCurrentFont(QFont('Courier New'))
+        self.mem_display.setGeometry(0,0,600,500)
         self.lower_hbox.addWidget(self.mem_display)
-      
+        
         # textbox for char display of memory
         self.chr_display = QTextEdit()
         self.chr_display.setReadOnly(True)
-        self.chr_display.setMinimumWidth(600)
+        self.chr_display.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.chr_display.setLineWrapMode(QTextEdit.NoWrap)
         self.chr_display.setCurrentFont(QFont('Courier New'))
+        self.mem_display.setGeometry(0,0,400,500)
         self.lower_hbox.addWidget(self.chr_display)
+
+        self.lower_container.addWidget(self.lower_hbox)
 
         self.mem_display.verticalScrollBar().valueChanged.connect(self.addresses.verticalScrollBar().setValue) #synchronizes addresses's scroll bar to mem_display's 
         self.addresses.verticalScrollBar().valueChanged.connect(self.mem_display.verticalScrollBar().setValue) #synchronizes mem_display's scroll to addresses's, allowing for searching for addresses to scrol mem_display to the desired point 
         self.chr_display.verticalScrollBar().valueChanged.connect(self.mem_display.verticalScrollBar().setValue)  
         self.mem_display.verticalScrollBar().valueChanged.connect(self.chr_display.verticalScrollBar().setValue)  
 
-        self.chr_display.verticalScrollBar().valueChanged.connect(self.handle_scroll)
+        self.chr_display.verticalScrollBar().valueChanged.connect(self.handle_scroll) # allows us to do scrolling
 
         # setting up endiannes selection buttons
         self.little = QRadioButton("Little Endian")
@@ -120,14 +143,27 @@ class MemDumpWindow(QWidget):
         self.big.clicked.connect(lambda:self.change_endian(Endian.big))
         self.endian_vbox.addWidget(self.little)
         self.endian_vbox.addWidget(self.big)
+        self.endian_vbox.addSpacing(400)
 
-        self.lower_hbox.addLayout(self.endian_vbox)
+        self.lower_container.addLayout(self.endian_vbox)
 
-        self.vbox.addLayout(self.lower_hbox)
-
+        self.vbox.addLayout(self.lower_container)
+        self.vbox.setSpacing(10)
         self.setLayout(self.vbox)
         self.setWindowTitle("Memory Dump")
         self.setGeometry(100, 100, 1550, 500)
+
+
+    def save_to_file(self):
+        filename = QFileDialog().getSaveFileName(self, 'Save', '.')
+        args = {
+            'val': self.baseAddress,
+            'size': self.maxAddress - self.baseAddress,
+            'filename': filename[0]
+        }
+        self.qmp.command('pmemsave', args=args)
+
+
 
     def auto_refresh_check(self, value):
         if self.auto_refresh.checkState() == Qt.CheckState.Checked and not self.t.isRunning():
@@ -137,57 +173,63 @@ class MemDumpWindow(QWidget):
         elif self.auto_refresh.checkState() == Qt.CheckState.Unchecked:
             self.kill_signal.emit(True)
 
+
     def closeEvent(self, event):
         self.kill_signal.emit(True)
-        self.qmp.emptyReturn.disconnect(self.update_text)
+        self.qmp.pmem.disconnect(self.update_text)
+        while self.sem.tryAcquire(1,1):
+            self.sem.release(1000)
         event.accept()
 
+
     def update_text(self, value):
-        f = None
-        try: 
-            f = open('/tmp/QEMUGUI-memdump', 'rb')
-            byte = f.read()
-            f.close()
-        except Exception as e: # possibly an empty return for another function
-            if f:
-                f.close()
-        s = '' # hex representation of memory
+        if not value or value['hash'] != self.hash: # semaphore must be held before entering this function
+            return
+        byte = value['vals']
+        
+        s = [''] * ceil((len(byte) // 16)) # hex representation of memory
         addresses =  '' # addresses
         count = self.baseAddress # keeps track of each 16 addresses
-        if self.pos == self.chr_display.verticalScrollBar().maximum():  # scrolling down
+        if self.pos == self.max:  # scrolling down
             count = self.maxAddress 
-        self.maxAddress = count + len(byte)
+        self.maxAddress = max(count + len(byte), self.maxAddress)
         first = True
-        chars = '' # char represenation of memor
-
-        line_s = '' # single line in s
-        line_c = '' # single line in chars
+        chars = [''] * len(s) # char represenation of memory
+        index = 0
         self.endian_sem.acquire()
         for b in byte:
+            b = b['val']
             if count % 16 == 0:
                 if first:
                     addresses += f'0x{count:08x}' 
                     first = False
                 else:
                     addresses += f'\n0x{count:08x}' 
-                    s += line_s + '\n'
-                    chars += line_c + '\n'
-                    line_s = ''
-                    line_c = ''
+
+                    index += 1
             count += 1
             if self.endian == Endian.big:
-                line_s += f'0x{b:02x} ' 
-                line_c += f'{char_convert(b):3}'
+                # line_s += f'0x{b:02x} ' 
+                # line_c += f'{char_convert(b):3}'
+                s[index] += f'{b:02x} '
+                chars[index] += f'{char_convert(b):3}'
             elif self.endian == Endian.little:
-                line_s = f'0x{b:02x} ' + line_s
-                line_c = f'{char_convert(b):3}' + line_c
+                # line_s = f'0x{b:02x} ' + line_s
+                # line_c = f'{char_convert(b):3}' + line_c
+                s[index] = f'{b:02x} ' + s[index]
+                chars[index] = f'{char_convert(b):3}' + chars[index]
         self.endian_sem.release()
 
-        if self.pos >= self.max - self.delta:  # scrolling down
+        s = '\n'.join(s)
+        chars = '\n'.join(chars)
+
+        scroll_goto = self.pos
+
+        if self.pos > self.max - self.delta:  # scrolling down
             self.addresses.append(addresses)
-            self.mem_display.append(s[:-1])
-            self.chr_display.append(chars[:-1])
-            self.chr_display.verticalScrollBar().setValue(self.max)
+            self.mem_display.append(s)
+            self.chr_display.append(chars)
+            scroll_goto = self.max
 
         elif self.pos < self.min + self.delta:    # scrolling  up
             addr_cur = self.addresses.textCursor()
@@ -201,15 +243,17 @@ class MemDumpWindow(QWidget):
             self.addresses.setTextCursor(addr_cur)
             self.mem_display.setTextCursor(mem_cur)
             self.chr_display.setTextCursor(chr_cur)
+
             self.addresses.insertPlainText(addresses + '\n')
             self.mem_display.insertPlainText(s)
             self.chr_display.insertPlainText(chars)
-            self.chr_display.verticalScrollBar().setValue(self.chr_display.verticalScrollBar().maximum() - self.max)
+
+            scroll_goto = self.chr_display.verticalScrollBar().maximum() - self.max
+
         else:
             self.addresses.setPlainText(addresses)
-            self.mem_display.setPlainText(s[:-1])
-            self.chr_display.setPlainText(chars[:-1])
-            self.chr_display.verticalScrollBar().setValue(self.pos)
+            self.mem_display.setPlainText(s)
+            self.chr_display.setPlainText(chars)
 
         self.highlight_sem.acquire()
         if self.is_highlighted:
@@ -217,13 +261,13 @@ class MemDumpWindow(QWidget):
             self.highlight(self.highlight_addr)
         else:
             self.highlight_sem.release()
-       
+
+        self.chr_display.verticalScrollBar().setValue(scroll_goto)
         self.chr_display.verticalScrollBar().valueChanged.connect(self.handle_scroll)
         self.sem.release()
-            
 
 
-    def grab_data(self, val=0, size=constants['block_size'], refresh=False):
+    def grab_data(self, val=0, size=constants['block_size'], refresh=False):       
         if val == None:
             val = 0
         if size == None:
@@ -243,19 +287,28 @@ class MemDumpWindow(QWidget):
 
         if val < 0:
             val = 0
+        if val >= self.max_size:
+            return
         if size < 0:
             size = constants['block_size']
+        
+
+        self.sem.acquire()
 
         val = val - (val % 16)
         if val < self.baseAddress or refresh:
             self.baseAddress = val
-        
-        self.sem.acquire()
+        if size % 16 != 0:
+            size = size + (16 - (size % 16))
+        if val + size > self.max_size:
+            size = self.max_size - val
+
         self.chr_display.verticalScrollBar().valueChanged.disconnect(self.handle_scroll)
         self.pos = self.chr_display.verticalScrollBar().value()
         self.max = self.chr_display.verticalScrollBar().maximum()
         self.min = self.chr_display.verticalScrollBar().minimum()
         if refresh:
+            self.clear_highlight()
             self.addresses.clear()  # clearing to refresh data, other regions will be refilled through scrolling
             self.mem_display.clear()
             self.chr_display.clear() 
@@ -268,11 +321,12 @@ class MemDumpWindow(QWidget):
             self.highlight_sem.release()
 
         args = {
-                'val': val,
+                'addr': val,
                 'size': size,
-                'filename': '/tmp/QEMUGUI-memdump'
+                'hash': self.hash,
+                'grouping': 1
                 }
-        self.qmp.command('pmemsave', args=args)
+        self.qmp.command('get-pmem', args=args)
 
 
     def find(self, addr, size):
@@ -285,17 +339,14 @@ class MemDumpWindow(QWidget):
             self.highlight(addr)
             
         else:
+            self.highlight_sem.acquire()
+            self.is_highlighted = True
+            self.highlight_addr = addr
+            self.highlight_sem.release()
             self.grab_data(val=addr, size=size, refresh=True )
-            self.highlight(addr)
-            
-        self.sem.acquire()
-        self.chr_display.verticalScrollBar().valueChanged.disconnect(self.handle_scroll)
-        self.chr_display.ensureCursorVisible()
-        self.chr_display.verticalScrollBar().valueChanged.connect(self.handle_scroll)
-        self.sem.release()
 
 
-    def highlight(self, addr):
+    def clear_highlight(self):
         fmt = QTextCharFormat()
         fmt.setFont('Courier New')
         # clearing past highlights
@@ -310,6 +361,10 @@ class MemDumpWindow(QWidget):
         addr_cur.setCharFormat(fmt) # adding format
         mem_cur.setCharFormat(fmt)
         chr_cur.setCharFormat(fmt)
+
+
+    def highlight(self, addr):
+        self.clear_highlight()
         
         # adding new highlights
         fmt = QTextCharFormat()
@@ -326,7 +381,6 @@ class MemDumpWindow(QWidget):
 
 
         char_offset = 0
-        char_from_anchor = 0
         mem_offset = 0
         self.endian_sem.acquire()
         if self.endian == Endian.big:
@@ -363,14 +417,16 @@ class MemDumpWindow(QWidget):
         self.highlight_addr = addr
         self.highlight_sem.release()
 
+
     def handle_scroll(self):
-        if self.chr_display.verticalScrollBar().value() >= self.chr_display.verticalScrollBar().maximum() - self.delta:
-            self.grab_data(val=self.maxAddress)
-        elif self.baseAddress > 0 and self.chr_display.verticalScrollBar().value() < self.chr_display.verticalScrollBar().minimum() + self.delta:
+        if self.baseAddress > 0 and self.chr_display.verticalScrollBar().value() < self.chr_display.verticalScrollBar().minimum() + self.delta:
             size = constants['block_size']
             if self.baseAddress < size:
                 size = self.baseAddress
             self.grab_data(val=self.baseAddress-size, size=size)
+        elif self.chr_display.verticalScrollBar().value() > self.chr_display.verticalScrollBar().maximum() - self.delta and self.maxAddress <= self.max_size:
+            self.grab_data(val=self.maxAddress)
+      
       
     def change_endian(self, endian):
         self.endian_sem.acquire()
@@ -388,15 +444,19 @@ class MyThread(QThread):
         super().__init__()
         mem.kill_signal.connect(self.end)    
         self.sem = QSemaphore() 
-
+        self.running = True
     def run(self):
         while True:
             if self.sem.tryAcquire(1, 1000): # try to acquire and wait 1s to try to acquire
                 break
-            self.timing_signal.emit(True)
+            if self.running:
+                self.timing_signal.emit(True)
 
     def end(self, b):
         self.sem.release()
+
+    def halt(self, running):
+        self.running = running
 
 
 class Endian(Enum):
