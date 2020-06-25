@@ -1,7 +1,7 @@
 
-from PySide2.QtWidgets import QMainWindow, QAction, QGridLayout, QPushButton, QWidget, QLabel, QLineEdit
+from PySide2.QtWidgets import QMainWindow, QAction, QGridLayout, QPushButton, QWidget, QLabel, QLineEdit, QGraphicsView, QGraphicsScene
 from PySide2.QtGui import QIcon, QFont 
-from PySide2.QtCore import QSize, Slot
+from PySide2.QtCore import QSize, Slot, Signal
 
 
 from package.memdumpwindow import MemDumpWindow
@@ -9,6 +9,7 @@ from package.registerview import RegisterView
 from package.assemblywindow import AssemblyWindow
 from package.qmpwrapper import QMP
 from package.memtree import MemTree
+from package.timemultiplier import TimeMultiplier
 
 import threading
 import time
@@ -17,7 +18,7 @@ from datetime import datetime, timezone
 from yapsy.PluginManager import PluginManager
 import logging
 class MainWindow(QMainWindow):
-
+    kill_thread = Signal()
     def __init__(self):
         #logging.basicConfig(level=logging.DEBUG)
         self.qmp = QMP()
@@ -32,6 +33,7 @@ class MainWindow(QMainWindow):
         self.qmp.timeUpdate.connect(self.update_time)
         self.t = TimeThread(self.qmp)
         
+        self.time_mult = TimeMultiplier(self.qmp, self.kill_thread)
 
         self.window = []
 
@@ -103,6 +105,10 @@ class MainWindow(QMainWindow):
 
         tree = QAction("Memory Tree", self, triggered=(lambda: self.open_new_window(MemTree(self.qmp, self)) if self.qmp.isSockValid() else None))
         tools.addAction(tree)
+
+        mult = QAction("Time Multiplier", self, triggered=(lambda: self.time_mult.show() if self.qmp.isSockValid() else None))
+        tools.addAction(mult)
+
         self.addPlugins(tools)
         # Help Menu Options 
         usage = QAction("Usage Guide", self)
@@ -145,19 +151,19 @@ class MainWindow(QMainWindow):
         self.time.setFont(QFont('Courier New'))
         grid.addWidget(self.time, 0, 2)
 
-        self.connect = QPushButton("Connect")
-        self.connect.setCheckable(True)
-        self.connect.clicked.connect(self.qmp_start)
+        self.connect_button = QPushButton("Connect")
+        self.connect_button.setCheckable(True)
+        self.connect_button.clicked.connect(self.qmp_start)
 
         self.host = QLineEdit()
-        self.host.returnPressed.connect(lambda: self.connect.click() if not self.connect.isChecked() else None)
+        self.host.returnPressed.connect(lambda: self.cconnect_button.click() if not self.connect_button.isChecked() else None)
         grid.addWidget(self.host, 1, 0)
 
         self.port = QLineEdit()
-        self.port.returnPressed.connect(lambda: self.connect.click() if not self.connect.isChecked() else None)
+        self.port.returnPressed.connect(lambda: self.connect_button.click() if not self.connect_button.isChecked() else None)
         grid.addWidget(self.port, 1, 1)
 
-        grid.addWidget(self.connect, 1, 2)
+        grid.addWidget(self.connect_button, 1, 2)
 
         # Check if QMP is running initially
         if not self.qmp.running:
@@ -173,7 +179,7 @@ class MainWindow(QMainWindow):
         self.pause_button.setChecked(not value)
 
     def handle_connect_button(self, value):
-        self.connect.setChecked(value)
+        self.connect_button.setChecked(value)
         self.host.setReadOnly(value)
         self.port.setReadOnly(value)
 
@@ -183,24 +189,36 @@ class MainWindow(QMainWindow):
             self.window.append(new_window)
 
     def update_time(self, time):
-        print(time)
         date = datetime.fromtimestamp(time / 1000000000, timezone.utc)
         self.time.setText(f'Time: {date.day - 1:02}:{date.hour:02}:{date.minute:02}:{date.second:02}') # -1 for day because it starts from 1
 
     def qmp_start(self):
         if self.qmp.isSockValid():
             self.qmp.sock_disconnect()
+            self.kill_thread.emit()
             return
         else:
             s = self.port.text()
             if s.isnumeric():
                 self.qmp.sock_connect(self.host.text(), int(s))
+                if self.qmp.isSockValid():
+                    self.time_mult.start()
             else:
                 self.connect.setChecked(False)
         if not self.qmp.isAlive():
             self.qmp.start()
         if not self.t.isAlive():
             self.t.start()
+
+    def closeEvent(self, event):
+        self.kill_thread.emit()
+        event.accept()
+
+    def show_time_mult(self):
+        self.scene = QGraphicsScene()
+        self.view = QGraphicsView(self.scene)
+        self.scene.addItem(self.time_mult.chart)
+        self.view.show()
 
 class TimeThread(threading.Thread):
     def __init__(self, qmp):

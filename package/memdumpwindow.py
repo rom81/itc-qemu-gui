@@ -4,6 +4,7 @@ from package.qmpwrapper import QMP
 from PySide2.QtGui import QFont, QTextCharFormat, QTextCursor, QIcon
 from enum import Enum
 from package.constants import constants
+
 import time
 from math import ceil
 from random import randint
