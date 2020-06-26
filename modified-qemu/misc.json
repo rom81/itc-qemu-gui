@@ -1786,7 +1786,7 @@
 # @time_ns: Sim time (ns).
 #
 ##
-{ 'struct': 'SimTime', 'data': { 'time_ns': 'int64' } }
+{ 'struct': 'SimTime', 'data': {'time_ns': 'int64' } }
 
 ##
 # @itc-sim-time:
@@ -1797,6 +1797,15 @@
 { 'command': 'itc-sim-time',
 'data': { 'clock': 'ClockType' },
 'returns': 'SimTime' }
+
+##
+# @itc-time-metric:
+#
+# Gets both realtime and virtual times.
+#
+##
+{'command': 'itc-time-metric',
+'returns': ['SimTime']}
 
 ##
 # @MemVal:
