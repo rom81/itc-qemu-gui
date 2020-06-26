@@ -13,7 +13,7 @@ class QMP(threading.Thread, QtCore.QObject):
     memSizeInfo = QtCore.Signal(int)
     connectionChange = QtCore.Signal(bool)
     newData = QtCore.Signal(dict)
-
+    timeMetric = QtCore.Signal(list)
 
     def __init__(self):
 
@@ -37,6 +37,7 @@ class QMP(threading.Thread, QtCore.QObject):
         self._mem_size = None
         self._connected = False
         self._newdata = None
+        self._metric = None
 
     def run(self):
         while True:
@@ -56,6 +57,8 @@ class QMP(threading.Thread, QtCore.QObject):
                 self.p_mem = data['return']
             elif 'return' in data and type(data['return']) == list and len(data['return']) > 0 and 'name' in data['return'][0]:
                 self.memorymap = data['return']
+            elif 'return' in data and type(data['return']) == list and len(data['return']) == 2 and 'time_ns' in data['return'][0]:
+                self.metric = data['return']
             elif 'return' in data and 'time_ns' in data['return']:
                 self.time = data['return']['time_ns']
             elif 'return' in data and 'base-memory' in data['return']:
@@ -217,3 +220,13 @@ class QMP(threading.Thread, QtCore.QObject):
     def newdata(self, value):
         self._newdata = value
         self.newData.emit(value)
+
+    
+    @property
+    def metric(self):
+        return self._metric
+
+    @metric.setter
+    def metric(self, value):
+        self._metric = value
+        self.timeMetric.emit(value)
