@@ -4,7 +4,7 @@ from PySide2.QtCore import Qt
 
 class Preferences(QMainWindow):
 
-    def __init__(self, app, default, qmp):
+    def __init__(self, app, default, qmp, tt):
 
         QMainWindow.__init__(self)
 
@@ -49,23 +49,6 @@ class Preferences(QMainWindow):
 
         self.darkmode.toggled.connect(lambda:self.app.setPalette(palette) if self.darkmode.isChecked() else self.app.setPalette(self.default))
 
-        conn_grid = QHBoxLayout()
-
-        self.connect = QPushButton("Connect")
-        self.connect.setCheckable(True)
-        self.connect.clicked.connect(self.qmp_start)
-
-        self.host = QLineEdit()
-        self.host.returnPressed.connect(lambda: self.connect.click() if not self.connect.isChecked() else None)
-        conn_grid.addWidget(self.host)
-
-        self.port = QLineEdit()
-        self.port.returnPressed.connect(lambda: self.connect.click() if not self.connect.isChecked() else None)
-        conn_grid.addWidget(self.port)
-
-        conn_grid.addWidget(self.connect)
-
-        grid.addLayout(conn_grid)
         grid.addWidget(self.darkmode, 1)
 
         center = QWidget()
@@ -73,14 +56,4 @@ class Preferences(QMainWindow):
         self.setCentralWidget(center)
 
         self.show()
-            
-    def qmp_start(self):
-        if self.qmp.isSockValid():
-            self.qmp.sock_disconnect()
-            return
-        else:
-            self.qmp.sock_connect(self.host.text(), int(self.port.text()))
-        if not self.qmp.isAlive():
-            self.qmp.start()
-        if not self.t.isAlive():
-            self.t.start()
+       

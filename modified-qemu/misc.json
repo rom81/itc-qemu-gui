@@ -1786,7 +1786,7 @@
 # @time_ns: Sim time (ns).
 #
 ##
-{ 'struct': 'SimTime', 'data': { 'time_ns': 'int64' } }
+{ 'struct': 'SimTime', 'data': {'time_ns': 'int64' } }
 
 ##
 # @itc-sim-time:
@@ -1799,13 +1799,22 @@
 'returns': 'SimTime' }
 
 ##
-# @MemByte:
+# @itc-time-metric:
+#
+# Gets both realtime and virtual times.
+#
+##
+{'command': 'itc-time-metric',
+'returns': ['SimTime']}
+
+##
+# @MemVal:
 # 
 # Byte of memory
 #
 # Since: 4.2
 ##
-{'struct': 'MemByte', 'data': { 'val': 'uint8' } }
+{'struct': 'MemVal', 'data': { 'val': 'uint64' } }
 
 ##
 # @MemReturn:
@@ -1814,7 +1823,7 @@
 #
 # Since: 4.2
 ##
-{ 'struct': 'MemReturn', 'data': {'hash': 'int64', 'vals': ['MemByte']} }
+{ 'struct': 'MemReturn', 'data': {'hash': 'int64', 'vals': ['MemVal']} }
 
 ##
 # @get-pmem:
@@ -1823,4 +1832,4 @@
 #
 # Since: 4.2
 ##
-{ 'command': 'get-pmem', 'data': {'hash': 'int64', 'addr': 'int64', 'size': 'int64'}, 'returns': 'MemReturn' }
+{ 'command': 'get-pmem', 'data': {'hash': 'int64', 'addr': 'int64', 'size': 'int64', 'grouping': 'int'}, 'returns': 'MemReturn' }

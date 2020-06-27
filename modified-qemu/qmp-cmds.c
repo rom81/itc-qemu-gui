@@ -444,3 +444,18 @@ SimTime* qmp_itc_sim_time(ClockType clock_type, Error **errp)
     }
     return sim_time;
 }
+
+SimTimeList *qmp_itc_time_metric(Error **errp) {
+    SimTimeList *head = g_malloc0(sizeof(*head));
+    head->value = g_malloc0(sizeof(*head->value));
+    head->value->time_ns = qemu_clock_get_ns(CLOCK_TYPE_VIRTUAL);
+
+    SimTimeList *temp = g_malloc0(sizeof(*temp));
+    temp->value = g_malloc0(sizeof(*temp->value));
+    temp->value->time_ns = qemu_clock_get_ns(CLOCK_TYPE_HOST);
+
+    head->next = temp;
+    temp->next = NULL;
+
+    return head;
+}
