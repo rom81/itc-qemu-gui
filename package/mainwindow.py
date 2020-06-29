@@ -194,7 +194,7 @@ class MainWindow(QMainWindow):
         self.connect_button.clicked.connect(self.qmp_start)
 
         self.host = QLineEdit()
-        self.host.returnPressed.connect(lambda: self.cconnect_button.click() if not self.connect_button.isChecked() else None)
+        self.host.returnPressed.connect(lambda: self.connect_button.click() if not self.connect_button.isChecked() else None)
 
         self.port = QLineEdit()
         self.port.returnPressed.connect(lambda: self.connect_button.click() if not self.connect_button.isChecked() else None)
@@ -271,7 +271,7 @@ class MainWindow(QMainWindow):
                 if self.qmp.isSockValid():
                     self.time_mult.start()
             else:
-                self.connect.setChecked(False)
+                self.connect_button.setChecked(False)
             self.banner.setText('QEMU Version ' + str(self.qmp.banner['QMP']['version']['package']))
         if not self.qmp.isAlive():
             self.qmp.start()

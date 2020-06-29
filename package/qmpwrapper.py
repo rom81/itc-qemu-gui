@@ -14,7 +14,7 @@ class QMP(threading.Thread, QtCore.QObject):
     connectionChange = QtCore.Signal(bool)
     newData = QtCore.Signal(dict)
     timeMetric = QtCore.Signal(list)
-
+    extraData = QtCore.Signal(dict)
     def __init__(self):
 
         QtCore.QObject.__init__(self)
@@ -73,7 +73,8 @@ class QMP(threading.Thread, QtCore.QObject):
                 self.time = data['return']['time_ns']
             elif 'return' in data and 'base-memory' in data['return']:
                 self.mem_size = data['return']['base-memory']        
-
+            else:
+                self.extraData.emit(data)
             self.newdata = data           
 
     def listen(self):

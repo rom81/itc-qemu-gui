@@ -1,5 +1,5 @@
 from PySide2.QtCore import QSize, Slot, Qt, QSemaphore, QThread, Signal
-from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QLabel, QTextEdit, QPushButton, QRadioButton, QCheckBox, QSplitter, QFileDialog
+from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QLabel, QTextEdit, QPushButton, QRadioButton, QCheckBox, QSplitter, QFileDialog, QComboBox
 from package.qmpwrapper import QMP
 from PySide2.QtGui import QFont, QTextCharFormat, QTextCursor, QIcon
 from enum import Enum
@@ -28,11 +28,12 @@ class MemDumpWindow(QWidget):
 
     def __init__(self, qmp, base=0, max=constants['block_size']):
         super().__init__()
+        self.qmp = qmp
         self.init_ui()
 
         self.baseAddress = base
         self.maxAddress = self.baseAddress
-        
+
         self.delta = 4 # adds a small buffer area for scrolling action to happen
 
         self.sem = QSemaphore(1) # semaphore for controlling access to the enabling / disabling of the scroll listening
@@ -45,8 +46,6 @@ class MemDumpWindow(QWidget):
         self.endian = Endian.little
         self.endian_sem = QSemaphore(1)
 
-        self.qmp = qmp
-
         self.hash = randint(0, 0xfffffffffffffff)
 
         icon = QIcon('package/icons/nasa.png')
@@ -58,7 +57,7 @@ class MemDumpWindow(QWidget):
         self.grab_data(val=self.baseAddress, size=min(max, constants['block_size'] + base)-self.baseAddress)
 
         self.t = MyThread(self)
-        self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, grouping=self.grouping.text(), refresh=True))
+        self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, grouping=self.grouping.currentText(), refresh=True))
         self.qmp.stateChanged.connect(self.t.halt)
         self.t.running = self.qmp.running
         self.t.start()
@@ -82,7 +81,8 @@ class MemDumpWindow(QWidget):
         self.hbox.addWidget(self.size)
 
         self.hbox.addWidget(QLabel('Grouping:'))
-        self.grouping = QLineEdit()
+        self.grouping = QComboBox()
+        self.grouping.addItems(['1','2','4','8'])
         self.hbox.addWidget(self.grouping)
 
         self.search = QPushButton('Search')
@@ -90,11 +90,13 @@ class MemDumpWindow(QWidget):
         self.hbox.addWidget(self.search)
 
         self.refresh = QPushButton('Refresh')
-        self.refresh.clicked.connect(lambda:self.grab_data(val=self.address.text(), size=self.size.text(), grouping=self.grouping.text(), refresh=True))
+        self.refresh.clicked.connect(lambda:self.grab_data(val=self.address.text(), size=self.size.text(), grouping=self.grouping.currentText(), refresh=True))
         self.hbox.addWidget(self.refresh)
 
         self.save = QPushButton('Save')
         self.save.clicked.connect(lambda: self.save_to_file())
+        self.disable_save(self.qmp.running)
+        self.qmp.stateChanged.connect(self.disable_save)
         self.hbox.addWidget(self.save)
 
         self.auto_refresh = QCheckBox('Auto Refresh')
@@ -158,24 +160,43 @@ class MemDumpWindow(QWidget):
         self.setWindowTitle("Memory Dump")
         self.setGeometry(100, 100, 1550, 500)
 
+    def disable_save(self, val):
+        self.save.setEnabled(not val)
 
     def save_to_file(self):
-        filename = QFileDialog().getSaveFileName(self, 'Save', '.')
+        # old = self.auto_refresh.checkState()
+        # self.auto_refresh.setChecked(False)
+        try:
+            filename = QFileDialog().getSaveFileName(self, 'Save', '.', options=QFileDialog.DontUseNativeDialog)
+        except Exception as e:
+            #self.auto_refresh.setCheckState(old)
+            return
+
+        if filename[0] == '':
+            # self.auto_refresh.setCheckState(old)
+            return
+
         args = {
             'val': self.baseAddress,
             'size': self.maxAddress - self.baseAddress,
             'filename': filename[0]
         }
+
         self.qmp.command('pmemsave', args=args)
+        #self.auto_refresh.setCheckState(old)
+        
 
 
 
     def auto_refresh_check(self, value):
+        print('hello')
         if self.auto_refresh.checkState() == Qt.CheckState.Checked and not self.t.isRunning():
+            print('birth')
             self.t = MyThread(self)
-            self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, grouping=self.grouping.text(), refresh=True))
+            self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, grouping=self.grouping.currentText(), refresh=True))
             self.t.start()
         elif self.auto_refresh.checkState() == Qt.CheckState.Unchecked:
+            print('kill')
             self.kill_signal.emit(True)
 
 
@@ -198,12 +219,16 @@ class MemDumpWindow(QWidget):
             self.addresses.clear()  # clearing to refresh data, other regions will be refilled through scrolling
             self.mem_display.clear()
             self.chr_display.clear()
+            
         s = [''] * ceil((len(byte) / (16))) # hex representation of memory
         addresses =  '' # addresses
         count = self.baseAddress # keeps track of each 16 addresses
         if self.pos == self.max:  # scrolling down
             count = self.maxAddress 
+
         self.maxAddress = max(count + (len(byte)), self.maxAddress)
+ 
+
         first = True
         chars = [''] * len(s) # char represenation of memory
         index = 0
@@ -324,7 +349,9 @@ class MemDumpWindow(QWidget):
 
         val = val - (val % 16)
         if val < self.baseAddress or refresh:
+
             self.baseAddress = val
+  
         if size % 16 != 0:
             size = size + (16 - (size % 16))
         if val + size > self.max_size:
@@ -337,6 +364,7 @@ class MemDumpWindow(QWidget):
         self.group = grouping
         self.refresh = refresh
         if refresh: 
+
             self.maxAddress = self.baseAddress
 
             self.highlight_sem.acquire()
@@ -361,7 +389,7 @@ class MemDumpWindow(QWidget):
             print(e)
             return
         if self.baseAddress <= addr and addr <= self.maxAddress:
-            group = self.grouping.text()
+            group = self.grouping.currentText()
             try:
                 group = int(group, 0)
                 if group not in [1, 2, 4, 8]:
@@ -455,9 +483,9 @@ class MemDumpWindow(QWidget):
             size = constants['block_size']
             if self.baseAddress < size:
                 size = self.baseAddress
-            self.grab_data(val=self.baseAddress-size, size=size, grouping=self.grouping.text())
+            self.grab_data(val=self.baseAddress-size, size=size, grouping=self.grouping.currentText())
         elif self.chr_display.verticalScrollBar().value() > self.chr_display.verticalScrollBar().maximum() - self.delta and self.maxAddress <= self.max_size:
-            self.grab_data(val=self.maxAddress, grouping=self.grouping.text())
+            self.grab_data(val=self.maxAddress, grouping=self.grouping.currentText())
       
       
     def change_endian(self, endian):
