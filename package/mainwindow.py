@@ -9,6 +9,7 @@ from package.errorwindow import ErrorWindow
 from package.preferences import Preferences
 from package.memtree import MemTree
 from package.qmpwrapper import QMP
+from package.assemblywindow import AssemblyWindow
 
 from datetime import datetime, timezone
 import threading
