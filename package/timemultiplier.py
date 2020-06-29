@@ -182,7 +182,8 @@ class TimeMultiplier(QWidget):
         if self.lim_data[-1] < self.plot_min_val or self.plot_min_val < min(self.lim_data):
             self.plot_min_val = self.lim_data[-1]
             self.plot_min.setText(f'Min: {self.lim_data[-1]:.03f}')
-
+        self.ax.set_ylim(0, max(1.1, self.plot_max_val + .1))
+        self.ax.set_yticks(numpy.arange(0, max(1.1, self.plot_max_val + .1), .1))
         avg = sum(self.lim_data)/len(self.lim_data)
         self.plot_avg.setText(f'Mean: {avg:.03f}')
 
