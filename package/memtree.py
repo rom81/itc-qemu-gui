@@ -20,6 +20,7 @@ class MemTree(QWidget):
 		self.get_map()
 
 	def init_ui(self):
+
 		self.vbox = QVBoxLayout()
 
 		self.refresh = QPushButton('Refresh')
@@ -35,7 +36,7 @@ class MemTree(QWidget):
 		self.vbox.addWidget(self.tree)
 
 		self.setLayout(self.vbox)
-		self.setGeometry(100, 100, 600, 325)
+		self.setGeometry(100, 100, 400, 200)
 		self.setWindowTitle("Memory Tree")
 		self.show()
 

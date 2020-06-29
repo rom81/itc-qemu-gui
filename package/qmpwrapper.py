@@ -29,6 +29,13 @@ class QMP(threading.Thread, QtCore.QObject):
         self.sock_sem = QtCore.QSemaphore(1)
 
         self.responses = []
+    
+        self.isValid = False
+        self.sock_sem = QtCore.QSemaphore(1)
+
+        self.banner = None
+
+        # self.sock_connect(host, port)
 
         # QMP setup
         self._running = False
@@ -42,6 +49,9 @@ class QMP(threading.Thread, QtCore.QObject):
     def run(self):
         while True:
             data = self.listen()
+            if data == 'lost_conn':
+                self.running = None
+                break
             # Handle Async QMP Messages 
             if 'timestamp' in data:
                 if data['event'] == 'STOP':
@@ -105,7 +115,7 @@ class QMP(threading.Thread, QtCore.QObject):
                 if self.isSockValid():
                     self.sock_disconnect()
                     return None
-            time.sleep(0.1) # wait for listen to capture data and place it in responses dictionary
+            time.sleep(0.05) # wait for listen to capture data and place it in responses dictionary
             data = self.responses.pop(-1)
             return data
         return None
@@ -119,7 +129,7 @@ class QMP(threading.Thread, QtCore.QObject):
             self.connected = False
             self.running = False
         except OSError as e:
-            pass
+            print(e)
         finally:
             self.sock_sem.release()
 
@@ -131,6 +141,7 @@ class QMP(threading.Thread, QtCore.QObject):
             self.sock.connect((host, port))
             self.isValid = True
             self.connected = True
+            self.banner = json.loads(self.sock.recv(256))
         except OSError as e:
             self.isValid = False
             self.connected = False
