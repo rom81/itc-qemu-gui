@@ -4,6 +4,7 @@ from package.qmpwrapper import QMP
 from PySide2.QtGui import QFont, QTextCharFormat, QTextCursor, QIcon
 from enum import Enum
 from package.constants import constants
+
 import time
 from math import ceil
 from random import randint
@@ -57,7 +58,7 @@ class MemDumpWindow(QWidget):
         self.grab_data(val=self.baseAddress, size=min(max, constants['block_size'] + base)-self.baseAddress)
 
         self.t = MyThread(self)
-        self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, refresh=True))
+        self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, grouping=self.grouping.text(), refresh=True))
         self.qmp.stateChanged.connect(self.t.halt)
         self.t.running = self.qmp.running
         self.t.start()
@@ -80,12 +81,16 @@ class MemDumpWindow(QWidget):
         self.size = QLineEdit()
         self.hbox.addWidget(self.size)
 
+        self.hbox.addWidget(QLabel('Grouping:'))
+        self.grouping = QLineEdit()
+        self.hbox.addWidget(self.grouping)
+
         self.search = QPushButton('Search')
         self.search.clicked.connect(lambda:self.find(self.address.text(), constants['block_size']))
         self.hbox.addWidget(self.search)
 
         self.refresh = QPushButton('Refresh')
-        self.refresh.clicked.connect(lambda:self.grab_data(val=self.address.text(), size=self.size.text(), refresh=True))
+        self.refresh.clicked.connect(lambda:self.grab_data(val=self.address.text(), size=self.size.text(), grouping=self.grouping.text(), refresh=True))
         self.hbox.addWidget(self.refresh)
 
         self.save = QPushButton('Save')
@@ -168,7 +173,7 @@ class MemDumpWindow(QWidget):
     def auto_refresh_check(self, value):
         if self.auto_refresh.checkState() == Qt.CheckState.Checked and not self.t.isRunning():
             self.t = MyThread(self)
-            self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, refresh=True))
+            self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, grouping=self.grouping.text(), refresh=True))
             self.t.start()
         elif self.auto_refresh.checkState() == Qt.CheckState.Unchecked:
             self.kill_signal.emit(True)
@@ -177,8 +182,10 @@ class MemDumpWindow(QWidget):
     def closeEvent(self, event):
         self.kill_signal.emit(True)
         self.qmp.pmem.disconnect(self.update_text)
-        while self.sem.tryAcquire(1,1):
-            self.sem.release(1000)
+        while True:
+            if self.sem.tryAcquire(1, 1):
+                break
+            self.sem.release(10)
         event.accept()
 
 
@@ -186,17 +193,22 @@ class MemDumpWindow(QWidget):
         if not value or value['hash'] != self.hash: # semaphore must be held before entering this function
             return
         byte = value['vals']
-        
-        s = [''] * ceil((len(byte) // 16)) # hex representation of memory
+        if self.refresh:
+            self.clear_highlight()
+            self.addresses.clear()  # clearing to refresh data, other regions will be refilled through scrolling
+            self.mem_display.clear()
+            self.chr_display.clear()
+        s = [''] * ceil((len(byte) / (16))) # hex representation of memory
         addresses =  '' # addresses
         count = self.baseAddress # keeps track of each 16 addresses
         if self.pos == self.max:  # scrolling down
             count = self.maxAddress 
-        self.maxAddress = max(count + len(byte), self.maxAddress)
+        self.maxAddress = max(count + (len(byte)), self.maxAddress)
         first = True
         chars = [''] * len(s) # char represenation of memory
         index = 0
         self.endian_sem.acquire()
+        nums = ''
         for b in byte:
             b = b['val']
             if count % 16 == 0:
@@ -211,13 +223,19 @@ class MemDumpWindow(QWidget):
             if self.endian == Endian.big:
                 # line_s += f'0x{b:02x} ' 
                 # line_c += f'{char_convert(b):3}'
-                s[index] += f'{b:02x} '
+                nums = f'{b:02x}' + nums
                 chars[index] += f'{char_convert(b):3}'
+
             elif self.endian == Endian.little:
                 # line_s = f'0x{b:02x} ' + line_s
-                # line_c = f'{char_convert(b):3}' + line_c
-                s[index] = f'{b:02x} ' + s[index]
+                # line_c = f'{char_convert(b):3}' + line_c       
+                nums += f'{b:02x}'      
                 chars[index] = f'{char_convert(b):3}' + chars[index]
+
+            if count % self.group == 0:
+                s[index] += nums + ' '
+                nums = ''
+                #print(f'"{s[index]}"')
         self.endian_sem.release()
 
         s = '\n'.join(s)
@@ -258,7 +276,7 @@ class MemDumpWindow(QWidget):
         self.highlight_sem.acquire()
         if self.is_highlighted:
             self.highlight_sem.release()
-            self.highlight(self.highlight_addr)
+            self.highlight(self.highlight_addr, self.group)
         else:
             self.highlight_sem.release()
 
@@ -267,7 +285,7 @@ class MemDumpWindow(QWidget):
         self.sem.release()
 
 
-    def grab_data(self, val=0, size=constants['block_size'], refresh=False):       
+    def grab_data(self, val=0, size=constants['block_size'], grouping=1, refresh=False):       
         if val == None:
             val = 0
         if size == None:
@@ -284,6 +302,15 @@ class MemDumpWindow(QWidget):
                 size = int(size, 0)
             except Exception:
                 size = constants['block_size']
+
+        if type(grouping) == str:
+            try:
+                grouping = int(grouping, 0)
+            except:
+                grouping = 1
+
+        if grouping not in [1, 2, 4, 8]:
+            grouping = 1
 
         if val < 0:
             val = 0
@@ -307,11 +334,9 @@ class MemDumpWindow(QWidget):
         self.pos = self.chr_display.verticalScrollBar().value()
         self.max = self.chr_display.verticalScrollBar().maximum()
         self.min = self.chr_display.verticalScrollBar().minimum()
-        if refresh:
-            self.clear_highlight()
-            self.addresses.clear()  # clearing to refresh data, other regions will be refilled through scrolling
-            self.mem_display.clear()
-            self.chr_display.clear() 
+        self.group = grouping
+        self.refresh = refresh
+        if refresh: 
             self.maxAddress = self.baseAddress
 
             self.highlight_sem.acquire()
@@ -336,7 +361,14 @@ class MemDumpWindow(QWidget):
             print(e)
             return
         if self.baseAddress <= addr and addr <= self.maxAddress:
-            self.highlight(addr)
+            group = self.grouping.text()
+            try:
+                group = int(group, 0)
+                if group not in [1, 2, 4, 8]:
+                    group = 1
+            except:
+                group = 1
+            self.highlight(addr, group)
             
         else:
             self.highlight_sem.acquire()
@@ -363,7 +395,7 @@ class MemDumpWindow(QWidget):
         chr_cur.setCharFormat(fmt)
 
 
-    def highlight(self, addr):
+    def highlight(self, addr, group):
         self.clear_highlight()
         
         # adding new highlights
@@ -384,11 +416,11 @@ class MemDumpWindow(QWidget):
         mem_offset = 0
         self.endian_sem.acquire()
         if self.endian == Endian.big:
-            mem_offset = (addr % 16) * 5
+            mem_offset = ((addr % 16) // group) * (2 * group + 1)
             char_offset = (addr % 16) * 3
         elif self.endian == Endian.little:
-            mem_offset = (15*5) - ((addr % 16) * 5)
-            char_offset = (15*3) - ((addr % 16)*3)
+            mem_offset = (((16 / group) - 1 )* (2 * group + 1)) - ((addr % 16) // group) * (2 * group + 1)
+            char_offset = (15*3) - ((addr % 16) * 3)
         self.endian_sem.release()
         addr_cur.setPosition(addr_block.position()) # getting positions
         mem_cur.setPosition(mem_block.position() + mem_offset) # gives character offset within 16 byte line
@@ -423,9 +455,9 @@ class MemDumpWindow(QWidget):
             size = constants['block_size']
             if self.baseAddress < size:
                 size = self.baseAddress
-            self.grab_data(val=self.baseAddress-size, size=size)
+            self.grab_data(val=self.baseAddress-size, size=size, grouping=self.grouping.text())
         elif self.chr_display.verticalScrollBar().value() > self.chr_display.verticalScrollBar().maximum() - self.delta and self.maxAddress <= self.max_size:
-            self.grab_data(val=self.maxAddress)
+            self.grab_data(val=self.maxAddress, grouping=self.grouping.text())
       
       
     def change_endian(self, endian):

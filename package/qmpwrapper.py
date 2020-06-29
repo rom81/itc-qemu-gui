@@ -12,8 +12,10 @@ class QMP(threading.Thread, QtCore.QObject):
     timeUpdate = QtCore.Signal(tuple)
     memSizeInfo = QtCore.Signal(int)
     connectionChange = QtCore.Signal(bool)
+    newData = QtCore.Signal(dict)
+    timeMetric = QtCore.Signal(list)
 
-    def __init__(self, host, port):
+    def __init__(self):
 
         QtCore.QObject.__init__(self)
         threading.Thread.__init__(self)
@@ -22,7 +24,9 @@ class QMP(threading.Thread, QtCore.QObject):
         self.daemon = True 
 
         # Socket creation
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock = None
+        self.isValid = False
+        self.sock_sem = QtCore.QSemaphore(1)
 
         self.responses = []
     
@@ -31,18 +35,17 @@ class QMP(threading.Thread, QtCore.QObject):
 
         self.banner = None
 
-        self.sock_connect(host, port)
+        # self.sock_connect(host, port)
 
         # QMP setup
-        self.command('query-status')
-
-        self._running = None
-        self._empty_return = None
-        self._time = None
+        self._running = False
         self._p_mem = None
+        self._time = None
         self._mem_size = None
         self._connected = False
-    
+        self._newdata = None
+        self._metric = None
+
     def run(self):
         while True:
             data = self.listen()
@@ -64,32 +67,33 @@ class QMP(threading.Thread, QtCore.QObject):
                 self.p_mem = data['return']
             elif 'return' in data and type(data['return']) == list and len(data['return']) > 0 and 'name' in data['return'][0]:
                 self.memorymap = data['return']
+            elif 'return' in data and type(data['return']) == list and len(data['return']) == 2 and 'time_ns' in data['return'][0]:
+                self.metric = data['return']
             elif 'return' in data and 'time_ns' in data['return']:
                 self.time = data['return']['time_ns']
             elif 'return' in data and 'base-memory' in data['return']:
-                self.mem_size = data['return']['base-memory']                   
+                self.mem_size = data['return']['base-memory']        
+
+            self.newdata = data           
 
     def listen(self):
-        if self.isSockValid():            
+        if self.isSockValid():
             total_data = bytearray() # handles large returns
-            while True:
+            while self.connected:
                 try:
                     data = self.sock.recv(1024)
-                    if not data:
-                        return 'lost_conn'
-                    total_data.extend(data)
-                    if len(data) < 1024:
-                        break
-                except socket.timeout:
+                except OSError:
+                    return ''
+                total_data.extend(data)
+                if len(data) < 1024:
                     break
 
             data = total_data.decode().split('\n')[0]
-            if data:
-                data = json.loads(data)
-                if 'return' in data.keys() and 'time_ns' not in data['return']:
-                    self.responses.append(data)
+            data = json.loads(data)
+            self.responses.append(data)
             return data
-        return None
+        return ''
+
 
     def command(self, cmd, args=None):
         if self.isSockValid():
@@ -135,11 +139,10 @@ class QMP(threading.Thread, QtCore.QObject):
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.settimeout(1)
             self.sock.connect((host, port))
-            self.banner = json.loads(self.sock.recv(256))
             self.isValid = True
             self.connected = True
+            self.banner = json.loads(self.sock.recv(256))
         except OSError as e:
-            print(e)
             self.isValid = False
             self.connected = False
         finally:
@@ -218,3 +221,23 @@ class QMP(threading.Thread, QtCore.QObject):
     def connected(self, value):
         self._connected = value
         self.connectionChange.emit(value)
+
+
+    @property
+    def newdata(self):
+        return self._newdata
+
+    @newdata.setter
+    def newdata(self, value):
+        self._newdata = value
+        self.newData.emit(value)
+
+    
+    @property
+    def metric(self):
+        return self._metric
+
+    @metric.setter
+    def metric(self, value):
+        self._metric = value
+        self.timeMetric.emit(value)
