@@ -82,15 +82,18 @@ class QMP(threading.Thread, QtCore.QObject):
             total_data = bytearray() # handles large returns
             while self.connected:
                 try:
-                    data = self.sock.recv(1024)
+                    data = self.sock.recv(4096)
                 except OSError:
                     return ''
                 total_data.extend(data)
-                if len(data) < 1024:
+                if len(data) < 4095:
                     break
 
             data = total_data.decode().split('\n')[0]
-            data = json.loads(data)
+            try:
+                data = json.loads(data)
+            except json.decoder.JSONDecodeError:
+                return ''
             self.responses.append(data)
             return data
         return ''

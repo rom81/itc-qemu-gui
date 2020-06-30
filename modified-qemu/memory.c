@@ -3145,6 +3145,23 @@ void mtree_info(bool flatview, bool dispatch_tree, bool owner)
     }
 }
 
+bool itc_check_mapped(int64_t addr) {
+    FlatRange *fr;
+    AddressSpace *as;
+    QTAILQ_FOREACH(as, &address_spaces, address_spaces_link) {
+        if(!strcmp(as->name, "memory")){
+            break;
+        }
+    }
+    FlatView *view = as->current_map;
+    FOR_EACH_FLAT_RANGE(fr, view) {
+        if(addrrange_contains(fr->addr, int128_make64(addr))) {
+            return true;
+        }
+    }
+    return false;
+}
+
 MemoryMapEntryList *qmp_mtree_helper(MemoryRegion *parent, MemoryMapEntryList *mm_list) {
     if(parent) { // subregions
         MemoryRegion *child;

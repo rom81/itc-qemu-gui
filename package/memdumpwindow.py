@@ -234,8 +234,8 @@ class MemDumpWindow(QWidget):
         index = 0
         self.endian_sem.acquire()
         nums = ''
-        for b in byte:
-            b = b['val']
+        for tup in byte:
+            b = tup['val']
             if count % 16 == 0:
                 if first:
                     addresses += f'0x{count:08x}' 
@@ -245,17 +245,22 @@ class MemDumpWindow(QWidget):
 
                     index += 1
             count += 1
+             
             if self.endian == Endian.big:
-                # line_s += f'0x{b:02x} ' 
-                # line_c += f'{char_convert(b):3}'
-                nums = f'{b:02x}' + nums
-                chars[index] += f'{char_convert(b):3}'
+                if tup['ismapped']:
+                    nums = f'{b:02x}' + nums
+                    chars[index] += f'{char_convert(b):3}'
+                else:
+                    nums = '**' + nums
+                    chars[index] += f'{".":3}'
 
-            elif self.endian == Endian.little:
-                # line_s = f'0x{b:02x} ' + line_s
-                # line_c = f'{char_convert(b):3}' + line_c       
-                nums += f'{b:02x}'      
-                chars[index] = f'{char_convert(b):3}' + chars[index]
+            elif self.endian == Endian.little:  
+                if tup['ismapped']:     
+                    nums += f'{b:02x}'      
+                    chars[index] = f'{char_convert(b):3}' + chars[index]
+                else:
+                    nums = '**' + nums
+                    chars[index] = f'{".":3}' + chars[index]
 
             if count % self.group == 0:
                 s[index] += nums + ' '

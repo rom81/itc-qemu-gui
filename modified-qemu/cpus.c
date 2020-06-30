@@ -59,7 +59,7 @@
 #include "sysemu/runstate.h"
 #include "hw/boards.h"
 #include "hw/hw.h"
-
+#include "itc-added-command.h"
 #ifdef CONFIG_LINUX
 
 #include <sys/prctl.h>
@@ -2351,6 +2351,7 @@ MemReturn *qmp_get_pmem(int64_t hash, int64_t addr, int64_t size, int64_t groupi
                     cur->value->val = cur->value->val << 8;
                     cur->value->val += buf[i+j];
                 }
+                cur->value->ismapped = itc_check_mapped(addr + i);
                 cur->next = NULL;
                 head->vals = cur;
                 first = false;
@@ -2359,8 +2360,12 @@ MemReturn *qmp_get_pmem(int64_t hash, int64_t addr, int64_t size, int64_t groupi
                 MemValList *temp = g_malloc0(sizeof(*temp));
                 temp->value = g_malloc0(sizeof(*temp->value));
                 temp->value->val = 0;
+                temp->value->ismapped = itc_check_mapped(addr + i);
                 int j = 0;
                 for(j = 0; j < grouping && i + j < l; j++) {
+                    if(!itc_check_mapped(addr + i + j)){
+                        temp->value->ismapped = false;
+                    }
                     temp->value->val = temp->value->val << 8;
                     temp->value->val += buf[i+j];
                 }
