@@ -264,15 +264,16 @@ class MainWindow(QMainWindow):
             self.pause_button.setEnabled(False)
             return
         else:
-            self.pause_button.setEnabled(True)
             s = self.port.text()
             if s.isnumeric():
                 self.qmp.sock_connect(self.host.text(), int(s))
                 if self.qmp.isSockValid():
                     self.time_mult.start()
+                    self.banner.setText('QEMU Version ' + str(self.qmp.banner['QMP']['version']['package']))
+                    self.pause_button.setEnabled(True)
             else:
                 self.connect_button.setChecked(False)
-            self.banner.setText('QEMU Version ' + str(self.qmp.banner['QMP']['version']['package']))
+            
         if not self.qmp.isAlive():
             self.qmp.start()
         if not self.t.isAlive():
