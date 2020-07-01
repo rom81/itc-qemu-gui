@@ -81,8 +81,6 @@ class TimeMultiplier(QWidget):
         self.ax.set_ylim(0, 1.1)
         self.ax.set_xlim(0, 1)
 
-        self.ax.set_yticks(numpy.arange(0, 1.2, .1))
-
         self.ax.set_xlabel('Simulation Time (s)')
         self.ax.set_ylabel('Multiplier')
         self.fill = self.ax.fill_between(self.line.get_xdata(), self.line.get_ydata(), color='blue', alpha=.3, interpolate=True)
@@ -183,7 +181,6 @@ class TimeMultiplier(QWidget):
             self.plot_min_val = self.lim_data[-1]
             self.plot_min.setText(f'Min: {self.lim_data[-1]:.03f}')
         self.ax.set_ylim(0, max(1.1, self.plot_max_val + .1))
-        self.ax.set_yticks(numpy.arange(0, max(1.1, self.plot_max_val + .1), .1))
         avg = sum(self.lim_data)/len(self.lim_data)
         self.plot_avg.setText(f'Mean: {avg:.03f}')
 
