@@ -92,7 +92,8 @@ class QMP(threading.Thread, QtCore.QObject):
             data = total_data.decode().split('\n')[0]
             try:
                 data = json.loads(data)
-            except json.decoder.JSONDecodeError:
+            except json.decoder.JSONDecodeError as e:
+                print(e)
                 return ''
             self.responses.append(data)
             return data

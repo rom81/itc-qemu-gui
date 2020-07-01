@@ -28,6 +28,10 @@ class MemDumpWindow(QWidget):
 
     def __init__(self, qmp, base=0, max=constants['block_size']):
         super().__init__()
+
+        self.flag = False
+        self.threshold = 2048 # number of resident bytes
+
         self.qmp = qmp
         self.init_ui()
 
@@ -277,7 +281,11 @@ class MemDumpWindow(QWidget):
             self.addresses.append(addresses)
             self.mem_display.append(s)
             self.chr_display.append(chars)
-            scroll_goto = self.max
+            if self.flag:
+                self.flag = False
+                scroll_goto = (1 - constants['block_size'] / self.threshold) * self.max
+            else:
+                scroll_goto = self.max
 
         elif self.pos < self.min + self.delta:    # scrolling  up
             addr_cur = self.addresses.textCursor()
@@ -295,8 +303,12 @@ class MemDumpWindow(QWidget):
             self.addresses.insertPlainText(addresses + '\n')
             self.mem_display.insertPlainText(s)
             self.chr_display.insertPlainText(chars)
-
-            scroll_goto = self.chr_display.verticalScrollBar().maximum() - self.max
+            
+            if self.flag:
+                self.flag = False
+                scroll_goto = (constants['block_size'] / self.threshold) * self.max
+            else:
+                scroll_goto = self.chr_display.verticalScrollBar().maximum() - self.max
 
         else:
             self.addresses.setPlainText(addresses)
@@ -348,30 +360,33 @@ class MemDumpWindow(QWidget):
             return
         if size < 0:
             size = constants['block_size']
+        # if size > 2048:
+        #     size = 2048
         
 
         self.sem.acquire()
 
         val = val - (val % 16)
         if val < self.baseAddress or refresh:
-
             self.baseAddress = val
-  
         if size % 16 != 0:
             size = size + (16 - (size % 16))
         if val + size > self.max_size:
             size = self.max_size - val
-
-        self.chr_display.verticalScrollBar().valueChanged.disconnect(self.handle_scroll)
+        
+        try:
+            self.chr_display.verticalScrollBar().valueChanged.disconnect(self.handle_scroll)
+        except:
+            pass
         self.pos = self.chr_display.verticalScrollBar().value()
         self.max = self.chr_display.verticalScrollBar().maximum()
         self.min = self.chr_display.verticalScrollBar().minimum()
         self.group = grouping
+
         self.refresh = refresh
         if refresh: 
-
             self.maxAddress = self.baseAddress
-
+            
             self.highlight_sem.acquire()
             if self.is_highlighted and self.highlight_addr not in range(val, val + size):
                 self.is_highlighted = False
@@ -486,11 +501,19 @@ class MemDumpWindow(QWidget):
     def handle_scroll(self):
         if self.baseAddress > 0 and self.chr_display.verticalScrollBar().value() < self.chr_display.verticalScrollBar().minimum() + self.delta:
             size = constants['block_size']
+            if self.maxAddress - self.baseAddress >= self.threshold:
+                self.flag = True
+                self.grab_data(val=self.baseAddress - constants['block_size'], size=self.threshold, refresh=True, grouping=self.grouping.currentText())
+                return
             if self.baseAddress < size:
                 size = self.baseAddress
             self.grab_data(val=self.baseAddress-size, size=size, grouping=self.grouping.currentText())
         elif self.chr_display.verticalScrollBar().value() > self.chr_display.verticalScrollBar().maximum() - self.delta and self.maxAddress <= self.max_size:
-            self.grab_data(val=self.maxAddress, grouping=self.grouping.currentText())
+            if self.maxAddress - self.baseAddress >= self.threshold:
+                self.flag = True
+                self.grab_data(val=self.baseAddress + constants['block_size'], size=self.threshold, refresh=True, grouping=self.grouping.currentText())
+            else:
+                self.grab_data(val=self.maxAddress, grouping=self.grouping.currentText())
       
       
     def change_endian(self, endian):
