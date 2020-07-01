@@ -5,8 +5,9 @@ from PySide2.QtCore import QSize, Slot, Qt, Signal
 from package.memdumpwindow import MemDumpWindow
 from package.timemultiplier import TimeMultiplier
 from package.registerview import RegisterView
-from package.errorwindow import ErrorWindow
+from package.loggingwindow import LoggingWindow
 from package.preferences import Preferences
+from package.tracewindow import TraceWindow
 from package.memtree import MemTree
 from package.qmpwrapper import QMP
 from package.assemblywindow import AssemblyWindow
@@ -17,6 +18,7 @@ import time
 
 from yapsy.PluginManager import PluginManager
 import logging
+
 class MainWindow(QMainWindow):
 
     kill_thread = Signal()
@@ -104,7 +106,7 @@ class MainWindow(QMainWindow):
         registers = QAction("CPU Register View", self, triggered=(lambda: self.open_new_window(RegisterView(self.qmp)) if self.qmp.isSockValid() else None))
         tools.addAction(registers)
 
-        errors = QAction("Error Log", self, triggered=lambda:self.open_new_window(ErrorWindow(self.qmp)))
+        errors = QAction("Logging View", self, triggered=lambda:self.open_new_window(LoggingWindow(self.qmp)))
         tools.addAction(errors)
 
         tree = QAction("Memory Tree", self, triggered=(lambda: self.open_new_window(MemTree(self.qmp, self)) if self.qmp.isSockValid() else None))
@@ -112,6 +114,9 @@ class MainWindow(QMainWindow):
 
         mult = QAction("Time Multiplier", self, triggered=(lambda: self.time_mult.show() if self.qmp.isSockValid() else None))
         tools.addAction(mult)
+
+        trace = QAction("Trace Event Viewer", self, triggered=lambda: self.open_new_window(TraceWindow(self.qmp)))
+        tools.addAction(trace)
 
         self.addPlugins(tools)
         # Help Menu Options 
@@ -133,23 +138,15 @@ class MainWindow(QMainWindow):
         grid = QVBoxLayout()
         grid.setSpacing(15)
 
-
-        # Check if QMP is running initially
-        if self.qmp.running == 'paused':
-            self.paused = True
-            # self.pause_button.setChecked(self.paused)
-
-        self.pause_button = QPushButton(self)
-        self.running_state = QLabel(self)
+        self.pause_button = QPushButton('■')
+        self.running_state = QLabel('Current State: <font color="grey">Inactive</font>')
 
         def cont_sim():
-            # self.pause_button.setIcon(QIcon('package/icons/icons8-pause-90.png'))
             self.pause_button.setText('■')
             self.running_state.setText('Current State: <font color="green">Running</font>')
             self.qmp.command('cont')
 
         def stop_sim():
-            # self.pause_button.setIcon(QIcon('package/icons/icon8-play-90.png'))
             self.pause_button.setText('▶')
             self.running_state.setText('Current State: <font color="red">Paused</font>')
             self.qmp.command('stop')
@@ -161,9 +158,8 @@ class MainWindow(QMainWindow):
         subgrid.addWidget(self.pause_button, 0)
         # self.pause_button.setCheckable(True)
 
-        self.handle_pause_button(False)
+        # self.handle_pause_button(False)
         self.pause_button.setEnabled(False)
-
 
         meatball = QLabel(self)
         logo = QPixmap('package/icons/nasa.png')
@@ -182,11 +178,6 @@ class MainWindow(QMainWindow):
         self.banner = QLabel('<font color="grey">Connect to QMP to get started!</font>')
         grid.addWidget(self.banner, 3)
 
-        # if self.qmp.banner:
-        #     banner = QLabel('QEMU Version ' + str(self.qmp.banner['QMP']['version']['package']))
-        #     # print(self.qmp.banner)
-        #     grid.addWidget(banner, 3)
-
         conn_grid = QHBoxLayout()
 
         self.connect_button = QPushButton("Connect")
@@ -199,10 +190,6 @@ class MainWindow(QMainWindow):
         self.port = QLineEdit()
         self.port.returnPressed.connect(lambda: self.connect_button.click() if not self.connect_button.isChecked() else None)
 
-
-        # Check if QMP is running initially
-        if not self.qmp.running:
-            self.pause_button.setChecked(True)
 
         conn_grid.addWidget(self.host)
         conn_grid.addWidget(self.port)
@@ -224,12 +211,10 @@ class MainWindow(QMainWindow):
         # Catches signals from QMPWrapper
         if value:
             self.paused = False
-            # self.pause_button.setIcon(QIcon('package/icons/icons8-pause-90.png'))
             self.pause_button.setText('■')
             self.running_state.setText('Current State: <font color="green">Running</font>')
         elif not value:
             self.paused = True 
-            # self.pause_button.setIcon(QIcon('package/icons/icons8-play-90.png'))
             self.pause_button.setText('▶')
             self.running_state.setText('Current State: <font color="red">Paused</font>')
         else:
@@ -237,16 +222,9 @@ class MainWindow(QMainWindow):
             self.throwError()
 
     def handle_connect_button(self, value):
-        self.connect.setChecked(value)
-        self.host.setReadOnly(value)
-        self.port.setReadOnly(value)
-
-
-    def handle_connect_button(self, value):
         self.connect_button.setChecked(value)
         self.host.setReadOnly(value)
         self.port.setReadOnly(value)
-
 
     def open_new_window(self, new_window):
         if self.qmp.isSockValid():
@@ -261,6 +239,8 @@ class MainWindow(QMainWindow):
             self.qmp.sock_disconnect()
             self.kill_thread.emit()
             self.banner.setText('<font color="grey">Connect to QMP to get started!</font>')
+            self.pause_button.setText('■')
+            self.running_state.setText('Current State: <font color="grey">Inactive</font>')
             self.pause_button.setEnabled(False)
             return
         else:
@@ -272,12 +252,25 @@ class MainWindow(QMainWindow):
                     self.banner.setText('QEMU Version ' + str(self.qmp.banner['QMP']['version']['package']))
                     self.pause_button.setEnabled(True)
             else:
-                self.connect_button.setChecked(False)
-            
+                self.host.setText('127.0.0.1')
+                self.port.setText('55555')
+                self.qmp.sock_connect('127.0.0.1', 55555)
+                if self.qmp.isSockValid():
+                    self.time_mult.start()
         if not self.qmp.isAlive():
             self.qmp.start()
         if not self.t.isAlive():
             self.t.start()
+        time.sleep(0.5)
+        # check if running initally
+        if self.qmp.running:
+            self.paused = False
+            self.pause_button.setText('■')
+            self.running_state.setText('Current State: <font color="green">Running</font>')
+        else:
+            self.paused = True 
+            self.pause_button.setText('▶')
+            self.running_state.setText('Current State: <font color="red">Paused</font>')
 
     def closeEvent(self, event):
         self.kill_thread.emit()

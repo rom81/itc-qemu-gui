@@ -1,5 +1,0 @@
-pyside2
-# qmp is the package on PyPi, locally its installed as pyqmp by the WISP maintainers
-#pyqmp
-qmp
-app-utils
