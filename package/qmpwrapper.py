@@ -38,7 +38,7 @@ class QMP(threading.Thread, QtCore.QObject):
         # self.sock_connect(host, port)
 
         # QMP setup
-        self._running = False
+        self._running = None
         self._p_mem = None
         self._time = None
         self._mem_size = None
@@ -61,7 +61,7 @@ class QMP(threading.Thread, QtCore.QObject):
                 elif data['event'] == 'SHUTDOWN':
                     self.sock_disconnect()
             # Handle Status Return Messages
-            elif 'return' in data and 'running' in data['return']:
+            elif 'return' in data and 'running' in data['return'] and len(str(data['return'])) < 250:
                 self.running = data['return']['running']
             elif 'return' in data and 'hash' in data['return'] and 'vals' in data['return']:
                 self.p_mem = data['return']
@@ -90,7 +90,8 @@ class QMP(threading.Thread, QtCore.QObject):
 
             data = total_data.decode().split('\n')[0]
             data = json.loads(data)
-            self.responses.append(data)
+            if 'time_ns' not in str(data) and "{'return': \{\}}" not in str(data):
+                self.responses.append(data)
             return data
         return ''
 
@@ -109,14 +110,14 @@ class QMP(threading.Thread, QtCore.QObject):
     def hmp_command(self, cmd):
         if self.isSockValid():
             hmpcmd = json.dumps({'execute': 'human-monitor-command', 'arguments': {'command-line': cmd}})
-            try:
-                self.sock.sendall(hmpcmd.encode())
-            except BrokenPipeError:
-                if self.isSockValid():
-                    self.sock_disconnect()
-                    return None
+            # try:
+            self.sock.sendall(hmpcmd.encode())
+            # except BrokenPipeError:
+            #     if self.isSockValid():
+            #         self.sock_disconnect()
+            #         return None
             time.sleep(0.05) # wait for listen to capture data and place it in responses dictionary
-            data = self.responses.pop(-1)
+            data = self.responses[-1]
             return data
         return None
 
@@ -149,9 +150,10 @@ class QMP(threading.Thread, QtCore.QObject):
             self.sock_sem.release()
 
         self.command('qmp_capabilities')
+        self.command('query-status')
         if not self.isAlive():
             self.listen() # pluck empty return object
-        self.command('query-status')
+            self.listen() # grab running state
  
     def reconnect(self, host, port):
         self.sock_disconnect()
