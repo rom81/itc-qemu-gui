@@ -4,6 +4,7 @@ from PySide2.QtGui import QFont, QTextCharFormat, QTextCursor, QIcon
 from pprint import pprint
 from PySide2.QtCore import Qt
 import re
+from package.constants import constants
 
 class AssemblyWindow(QWidget):
     def __init__(self, qmp):
@@ -93,7 +94,7 @@ class AssemblyWindow(QWidget):
         if not self.running:
             data = None
             while True:
-                data = self.qmp.hmp_command('print $eip')
+                data = self.qmp.hmp_command('print ' + constants['pc'])
                 if 'return' in data:
                         data = data['return']
                         if not (data is dict) and self.addr.match(str(data)):
@@ -105,7 +106,7 @@ class AssemblyWindow(QWidget):
                 self.highlight(pc)
             else:
                 while True:
-                    data = self.qmp.hmp_command('x/30i $eip')
+                    data = self.qmp.hmp_command('x/30i ' + constants['pc'])
                     if 'return' in data:
                         data = data['return']
                         if self.instr.match(str(data)):
