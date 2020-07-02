@@ -36,7 +36,7 @@ class MemTree(QWidget):
 		self.vbox.addWidget(self.tree)
 
 		self.setLayout(self.vbox)
-		self.setGeometry(100, 100, 400, 200)
+		self.setGeometry(100, 100, 500, 300)
 		self.setWindowTitle("Memory Tree")
 		self.show()
 

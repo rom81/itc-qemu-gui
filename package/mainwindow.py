@@ -257,6 +257,8 @@ class MainWindow(QMainWindow):
                 self.qmp.sock_connect('127.0.0.1', 55555)
                 if self.qmp.isSockValid():
                     self.time_mult.start()
+                    self.banner.setText('QEMU Version ' + str(self.qmp.banner['QMP']['version']['package']))
+                    self.pause_button.setEnabled(True)
         if not self.qmp.isAlive():
             self.qmp.start()
         if not self.t.isAlive():

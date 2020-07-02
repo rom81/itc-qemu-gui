@@ -168,16 +168,12 @@ class MemDumpWindow(QWidget):
         self.save.setEnabled(not val)
 
     def save_to_file(self):
-        # old = self.auto_refresh.checkState()
-        # self.auto_refresh.setChecked(False)
         try:
             filename = QFileDialog().getSaveFileName(self, 'Save', '.', options=QFileDialog.DontUseNativeDialog)
         except Exception as e:
-            #self.auto_refresh.setCheckState(old)
             return
 
         if filename[0] == '':
-            # self.auto_refresh.setCheckState(old)
             return
 
         args = {
@@ -187,20 +183,16 @@ class MemDumpWindow(QWidget):
         }
 
         self.qmp.command('pmemsave', args=args)
-        #self.auto_refresh.setCheckState(old)
         
 
 
 
     def auto_refresh_check(self, value):
-        print('hello')
         if self.auto_refresh.checkState() == Qt.CheckState.Checked and not self.t.isRunning():
-            print('birth')
             self.t = MyThread(self)
             self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, grouping=self.grouping.currentText(), refresh=True))
             self.t.start()
         elif self.auto_refresh.checkState() == Qt.CheckState.Unchecked:
-            print('kill')
             self.kill_signal.emit(True)
 
 
@@ -267,7 +259,10 @@ class MemDumpWindow(QWidget):
                     chars[index] = f'{".":3}' + chars[index]
 
             if count % self.group == 0:
-                s[index] += nums + ' '
+                if self.endian == Endian.big:
+                    s[index] += nums + ' '
+                elif self.endian == Endian.little:
+                     s[index] = nums + ' ' + s[index]
                 nums = ''
                 #print(f'"{s[index]}"')
         self.endian_sem.release()
@@ -360,8 +355,8 @@ class MemDumpWindow(QWidget):
             return
         if size < 0:
             size = constants['block_size']
-        # if size > 2048:
-        #     size = 2048
+        if size > self.threshold:
+            size = self.threshold
         
 
         self.sem.acquire()
