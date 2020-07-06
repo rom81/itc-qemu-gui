@@ -296,8 +296,8 @@ class MemDumpWindow(QWidget):
             self.chr_display.setTextCursor(chr_cur)
 
             self.addresses.insertPlainText(addresses + '\n')
-            self.mem_display.insertPlainText(s)
-            self.chr_display.insertPlainText(chars)
+            self.mem_display.insertPlainText(s + '\n')
+            self.chr_display.insertPlainText(chars + '\n')
             
             if self.flag:
                 self.flag = False
