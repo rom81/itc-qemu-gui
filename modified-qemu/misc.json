@@ -1814,7 +1814,7 @@
 #
 # Since: 4.2
 ##
-{'struct': 'MemVal', 'data': { 'val': 'uint64' } }
+{'struct': 'MemVal', 'data': { 'val': 'uint64', 'ismapped': 'bool' } }
 
 ##
 # @MemReturn:
