@@ -29,7 +29,6 @@ class MainWindow(QMainWindow):
  
         # self.qmp = QMP('localhost', 55555)
         self.qmp = QMP()
-        self.qmp.start()
 
         self.qmp.stateChanged.connect(self.handle_pause_button)
         self.qmp.connectionChange.connect(self.handle_connect_button)
@@ -209,17 +208,16 @@ class MainWindow(QMainWindow):
     @Slot(bool)
     def handle_pause_button(self, value):
         # Catches signals from QMPWrapper
+        #print('recieved: ', value)
+        # time.sleep(0.05) # fix race condition
         if value:
             self.paused = False
             self.pause_button.setText('■')
             self.running_state.setText('Current State: <font color="green">Running</font>')
-        elif not value:
+        elif not value and value is not None:
             self.paused = True 
             self.pause_button.setText('▶')
             self.running_state.setText('Current State: <font color="red">Paused</font>')
-        else:
-            self.running_state.setText('Current State: Broken')
-            self.throwError()
 
     def handle_connect_button(self, value):
         self.connect_button.setChecked(value)
@@ -259,11 +257,6 @@ class MainWindow(QMainWindow):
                     self.time_mult.start()
                     self.banner.setText('QEMU Version ' + str(self.qmp.banner['QMP']['version']['package']))
                     self.pause_button.setEnabled(True)
-        if not self.qmp.isAlive():
-            self.qmp.start()
-        if not self.t.isAlive():
-            self.t.start()
-        time.sleep(0.5)
         # check if running initally
         if self.qmp.running:
             self.paused = False
@@ -273,6 +266,10 @@ class MainWindow(QMainWindow):
             self.paused = True 
             self.pause_button.setText('▶')
             self.running_state.setText('Current State: <font color="red">Paused</font>')
+        if not self.qmp.isAlive():
+            self.qmp.start()
+        if not self.t.isAlive():
+            self.t.start()
 
     def closeEvent(self, event):
         self.kill_thread.emit()

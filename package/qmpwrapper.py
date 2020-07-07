@@ -15,6 +15,7 @@ class QMP(threading.Thread, QtCore.QObject):
     newData = QtCore.Signal(dict)
     timeMetric = QtCore.Signal(list)
     extraData = QtCore.Signal(dict)
+
     def __init__(self):
 
         QtCore.QObject.__init__(self)
@@ -46,8 +47,10 @@ class QMP(threading.Thread, QtCore.QObject):
         self._newdata = None
         self._metric = None
 
+        self.ready = False
+
     def run(self):
-        while True:
+        while self.ready:
             data = self.listen()
             if data == 'lost_conn':
                 self.running = None
@@ -93,6 +96,10 @@ class QMP(threading.Thread, QtCore.QObject):
             data = json.loads(data)
             if 'time_ns' not in str(data) and "{'return': \{\}}" not in str(data):
                 self.responses.append(data)
+            # {'return': {'status': 'running', 'singlestep': False, 'running': True}}
+            if 'return' in data and 'running' in data['return'] and len(str(data)) < 250:
+                self.running = data['return']['running']
+                self.ready = True
             return data
         return ''
 
@@ -130,6 +137,7 @@ class QMP(threading.Thread, QtCore.QObject):
             self.isValid = False
             self.connected = False
             self.running = False
+            self.ready = False
         except OSError as e:
             print(e)
         finally:
@@ -152,13 +160,23 @@ class QMP(threading.Thread, QtCore.QObject):
 
         self.command('qmp_capabilities')
         self.command('query-status')
-        if not self.isAlive():
-            self.listen() # pluck empty return object
-            self.listen() # grab running state
+
  
+        #if not self.isAlive():
+        #    print(self.listen()) # pluck empty return object
+        #    print(self.listen()) # grab running state
+
+        while not self.ready:
+            self.command('query-status')
+            self.listen()
+
     def reconnect(self, host, port):
         self.sock_disconnect()
         self.sock_connect(host, port)
+
+        while not self.ready:
+            self.command('query-status')
+            self.listen()
               
     def isSockValid(self):
         self.sock_sem.acquire()
@@ -172,6 +190,8 @@ class QMP(threading.Thread, QtCore.QObject):
     
     @running.setter
     def running(self, value):
+        #print('sent: ', value)
+        #time.sleep(0.05) # fix race condition
         self._running = value
         self.stateChanged.emit(value)
         
