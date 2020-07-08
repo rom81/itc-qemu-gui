@@ -86,6 +86,7 @@ class RegisterView(QMainWindow):
                 self.fancy_list[i].setStyleSheet("color: orange")
                 self.yellow.append(i)
             elif i in self.yellow:
+                self.yellow.remove(i)
                 self.fancy_list[i].setStyleSheet("")
                 
 
