@@ -41,9 +41,8 @@ class TimingWindow(QWidget):
         super().__init__(parent)
         # qmp connection
         self.qmp = qmp
-        #self.qmp.timeMetric.connect(self.on_time_sample)
         self.qmp.timeMetric.connect(self.on_timeSample) 
-        self.qmp.stateChanged.connect(self.on_state_change)
+        self.qmp.stateChanged.connect(self.on_stateChange)
         # sample request timer
         self.timer = QBasicTimer()
         # time metric samples and statistics
@@ -135,7 +134,6 @@ class TimingWindow(QWidget):
                     moving_averages.append(moving_average)
         return [sim_times, moving_averages]
 
-    #def on_time_sample(self, data):
     def on_timeSample(self, data): 
         """new time sample received callback"""
         # new time sample
@@ -193,7 +191,7 @@ class TimingWindow(QWidget):
         else:
             self.timer.stop()
 
-    def on_state_change(self, state):
+    def on_stateChange(self, state):
         """qemu state change callback"""
         self.update_sample_timer()
 
