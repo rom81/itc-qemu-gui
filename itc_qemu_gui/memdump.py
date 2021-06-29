@@ -458,10 +458,7 @@ class MemoryDumpWindow(QWidget):
 
     def change_endian(self, endian):
         self.endian_sem.acquire()
-        if endian == Endian.little:
-            self.endian = endian
-        elif endian == Endian.big:
-            self.endian = endian
+        self.endian = endian
         self.endian_sem.release()
 
 
