@@ -42,7 +42,8 @@ setuptools.setup(
         "pyside2 == 5.14.2.1",
         "yapsy == 1.12.2",
         "pygdbmi == 0.9.0.3",
-        "matplotlib == 3.2.2"
+        "matplotlib == 3.2.2",
+        "dataclasses == 0.8"
     ],
     python_requires=">=3.4",
     classifiers=[
