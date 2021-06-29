@@ -4,3 +4,15 @@ plugins/__pycache__
 *.swp
 venv
 Qemu-GUI/
+itc_qemu_gui/plugins/__pycache__/testPlugin.cpython-36.pyc
+itc_qemu_gui/ui/__pycache__/__init__.cpython-36.pyc
+itc_qemu_gui/ui/__pycache__/cpuregs.cpython-36.pyc
+itc_qemu_gui/ui/__pycache__/logging.cpython-36.pyc
+itc_qemu_gui/ui/__pycache__/memdump.cpython-36.pyc
+itc_qemu_gui/ui/__pycache__/memtree.cpython-36.pyc
+itc_qemu_gui/ui/__pycache__/qemu.cpython-36.pyc
+itc_qemu_gui/ui/__pycache__/settings.cpython-36.pyc
+itc_qemu_gui/ui/__pycache__/timing.cpython-36.pyc
+itc_qemu_gui.egg-info/
+itc_qemu_gui/__pycache__/
+
