@@ -7,3 +7,4 @@ Qemu-GUI/
 itc_qemu_gui/plugins/__pycache__/
 itc_qemu_gui/ui/__pycache__/
 itc_qemu_gui.egg-info/
+itc_qemu_gui/__pycache__/

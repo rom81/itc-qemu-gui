@@ -10,6 +10,12 @@ locations=(
 	["./modified-qemu/qmp-cmds.c"]="../qemu/monitor/qmp-cmds.c"
 )
 
+if ! command -v git &> /dev/null
+then
+    echo "git not found; installing"
+    sudo apt-get install git -y
+fi
+
 git clone https://github.com/qemu/qemu.git ../qemu
 
 cd ../qemu/
