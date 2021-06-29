@@ -2316,7 +2316,7 @@ exit:
     fclose(f);
 }
 
-MemReturn *qmp_get_pmem(int64_t hash, int64_t addr, int64_t size, int64_t grouping, Error **errp)
+MemReturn *qmp_itc_pmem(int64_t hash, int64_t addr, int64_t size, int64_t grouping, Error **errp)
 {
     switch(grouping) {
         case 1:

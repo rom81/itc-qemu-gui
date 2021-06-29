@@ -15,15 +15,8 @@ if [ -z $VIRTUAL_ENV ]; then
     source ./venv/bin/activate 
 fi
 
-installed=$(pip3 list 2>/dev/null)
-
-for package in $(awk -F "==" '{print $1}' ./requirements.txt); do
-    echo $installed | grep $package >/dev/null
-    if [ $? -eq 1 ]; then
-        echo -e "${yellow}[+]${off} Installing required package $package"
-        pip3 install $(grep $package ./requirements.txt)
-    fi
-done
+pip3 install -e .
 
 echo -e "${green}[+]${off} Running GUI"
-python3 ./main.py
+itc-qemu-gui
+

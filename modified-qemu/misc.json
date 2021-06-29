@@ -1764,13 +1764,13 @@
   'data': {'name': 'str', 'start': 'int', 'end': 'int', 'parent': 'str' } }
 
 ##
-# @mtree:
+# @itc-mtree:
 # 
 # Get address ranges of the regions of memory
 #
 # Since: 4.2
 ##
-{ 'command': 'mtree', 'returns': ['MemoryMapEntry'] }
+{ 'command': 'itc-mtree', 'returns': ['MemoryMapEntry'] }
 
 ##
 # @ClockType:
@@ -1826,10 +1826,10 @@
 { 'struct': 'MemReturn', 'data': {'hash': 'int64', 'vals': ['MemVal']} }
 
 ##
-# @get-pmem:
+# @itc-pmem:
 # 
 # Get memory and return it without having to write to a file
 #
 # Since: 4.2
 ##
-{ 'command': 'get-pmem', 'data': {'hash': 'int64', 'addr': 'int64', 'size': 'int64', 'grouping': 'int'}, 'returns': 'MemReturn' }
+{ 'command': 'itc-pmem', 'data': {'hash': 'int64', 'addr': 'int64', 'size': 'int64', 'grouping': 'int'}, 'returns': 'MemReturn' }

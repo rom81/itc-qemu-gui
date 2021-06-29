@@ -3162,7 +3162,7 @@ bool itc_check_mapped(int64_t addr) {
     return false;
 }
 
-MemoryMapEntryList *qmp_mtree_helper(MemoryRegion *parent, MemoryMapEntryList *mm_list) {
+MemoryMapEntryList *qmp_itc_mtree_helper(MemoryRegion *parent, MemoryMapEntryList *mm_list) {
     if(parent) { // subregions
         MemoryRegion *child;
         QTAILQ_FOREACH(child, &parent->subregions, subregions_link) {
@@ -3175,7 +3175,7 @@ MemoryMapEntryList *qmp_mtree_helper(MemoryRegion *parent, MemoryMapEntryList *m
                 temp->value->parent = g_strdup(memory_region_name(parent));
                 temp->next = mm_list;
                 mm_list = temp;
-                mm_list = qmp_mtree_helper(child, mm_list);
+                mm_list = qmp_itc_mtree_helper(child, mm_list);
             }
         }
     }
@@ -3202,16 +3202,16 @@ MemoryMapEntryList *qmp_mtree_helper(MemoryRegion *parent, MemoryMapEntryList *m
             temp2->next = mm_list;
             mm_list = temp2;
 
-            mm_list = qmp_mtree_helper(as->root, mm_list);
+            mm_list = qmp_itc_mtree_helper(as->root, mm_list);
         }
     }
     return mm_list;
 
 }
 
-MemoryMapEntryList *qmp_mtree(Error **errp)
+MemoryMapEntryList *qmp_itc_mtree(Error **errp)
 {
-    MemoryMapEntryList *mm_list = qmp_mtree_helper(NULL, NULL);
+    MemoryMapEntryList *mm_list = qmp_itc_mtree_helper(NULL, NULL);
 
     MemoryMapEntryList *head = mm_list;
     MemoryMapEntryList *prev = NULL;

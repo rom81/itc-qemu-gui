@@ -1,8 +1,0 @@
-[Core]
-Name = 'QMP Displayer'
-Module = testPlugin
-
-[Documentation]
-Author = Ian Peitzsch
-Version = 0.1
-Description = Displays all QMP traffic
