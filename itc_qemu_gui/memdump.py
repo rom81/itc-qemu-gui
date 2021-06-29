@@ -138,7 +138,7 @@ class MemoryDumpWindow(QWidget):
         self.qmp.command('pmemsave', args=args)
 
     def auto_refresh_check(self, value):
-        if self.btn_autorefresh.checkState() == Qt.CheckState.Checked and not self.t.isRunning():
+        if self.ui.btn_autorefresh.checkState() == Qt.CheckState.Checked and not self.t.isRunning():
             self.t = MyThread(self)
             self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, grouping=self.ui.combo_grouping.currentText(), refresh=True))
             self.t.start()
