@@ -201,6 +201,9 @@ class TimingWindow(QWidget):
             self.qmp.command('itc-time-metric')
         else:
             super().timerEvent(event)
+    
+    def closeEvent(self, event):
+        self.timer.stop()
 
 if __name__ == "__main__":
     import sys
