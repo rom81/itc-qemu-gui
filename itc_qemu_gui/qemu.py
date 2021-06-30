@@ -73,7 +73,7 @@ class QemuWindow(QMainWindow):
         self.setWindowIcon(icon)
         # menus
         self.ui.action_file_settings.triggered.connect(self.open_settings_dialog)
-        self.ui.action_file_exit.triggered.connect(self.close)
+        self.ui.action_file_exit.triggered.connect(self.app.closeAllWindows)
         self.ui.action_run_stop.triggered.connect(lambda: self.qmp.command('stop'))
         self.ui.action_run_play.triggered.connect(lambda: self.qmp.command('cont'))
         self.ui.action_tools_memdump.triggered.connect(lambda: self.open_new_window(MemoryDumpWindow))
