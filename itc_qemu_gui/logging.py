@@ -73,6 +73,7 @@ class LoggingWindow(QWidget):
         self.ui.le_logfile.setText(DEFAULT_LOGFILE)
         self.ui.btn_logfile.clicked.connect(self.on_select_logfile)
         self.ui.btn_start.clicked.connect(self.on_start_logging)
+        self.ui.btn_stop.clicked.connect(self.on_stop_logging)
 
         # configure splitters
         self.ui.splitter_outlog.setStretchFactor(1, 1)
@@ -151,8 +152,15 @@ class LoggingWindow(QWidget):
         self.watcher = QFileSystemWatcher([logfile], parent=self)
         self.watcher.fileChanged.connect(self.on_log_change)
 
+    def on_stop_logging(self):
+        """stop logging"""
+        # disable all trace events
+        for tevent in self.active_tevents:
+            self.qmp.hmp_command(f'trace-event {tevent} off')
+        # disable all log masks on window close
+        self.qmp.hmp_command('log none')
+   
     def on_log_change(self, fname):
-        print("entered on_log_change")
         """logfile change callback"""
         if self.fin:
             # read and insert new lines

@@ -59,6 +59,13 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QPushButton" name="btn_stop">
+       <property name="text">
+        <string>Stop</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
@@ -215,7 +222,7 @@
              <x>0</x>
              <y>0</y>
              <width>405</width>
-             <height>179</height>
+             <height>184</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout">

@@ -49,6 +49,11 @@ class Ui_logging(object):
 
         self.horizontalLayout_5.addWidget(self.btn_start)
 
+        self.btn_stop = QPushButton(logging)
+        self.btn_stop.setObjectName(u"btn_stop")
+
+        self.horizontalLayout_5.addWidget(self.btn_stop)
+
 
         self.verticalLayout_4.addLayout(self.horizontalLayout_5)
 
@@ -129,7 +134,7 @@ class Ui_logging(object):
         self.scrollArea.setWidgetResizable(True)
         self.scroll_contents = QWidget()
         self.scroll_contents.setObjectName(u"scroll_contents")
-        self.scroll_contents.setGeometry(QRect(0, 0, 405, 179))
+        self.scroll_contents.setGeometry(QRect(0, 0, 405, 184))
         self.verticalLayout = QVBoxLayout(self.scroll_contents)
         self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName(u"verticalLayout")
@@ -164,6 +169,7 @@ class Ui_logging(object):
         self.le_logfile.setPlaceholderText(QCoreApplication.translate("logging", u"Log File", None))
         self.btn_logfile.setText(QCoreApplication.translate("logging", u"...", None))
         self.btn_start.setText(QCoreApplication.translate("logging", u"Start", None))
+        self.btn_stop.setText(QCoreApplication.translate("logging", u"Stop", None))
         self.groupBox.setTitle(QCoreApplication.translate("logging", u"Trace Events:", None))
         self.btn_search.setText(QCoreApplication.translate("logging", u"Search", None))
         self.btn_expand.setText(QCoreApplication.translate("logging", u"\u25bc", None))

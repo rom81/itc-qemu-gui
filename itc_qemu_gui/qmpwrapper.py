@@ -122,6 +122,7 @@ class QMP(threading.Thread, QtCore.QObject):
     def command(self, cmd, args=None):
         if self.isSockValid():
             qmpcmd = json.dumps({'execute': cmd})
+            print(qmpcmd)  
             if args:
                 qmpcmd = json.dumps({'execute': cmd, 'arguments': args})
             try:
@@ -134,6 +135,7 @@ class QMP(threading.Thread, QtCore.QObject):
     def hmp_command(self, cmd):
         if self.isSockValid():
             hmpcmd = json.dumps({'execute': 'human-monitor-command', 'arguments': {'command-line': cmd}})
+            print(hmpcmd) 
             try:
                 self.sock.sendall(hmpcmd.encode())
             except BrokenPipeError:
