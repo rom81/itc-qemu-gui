@@ -57,9 +57,7 @@ class CpuRegistersWindow(QWidget):
         self.ui.register_widgets = {}
         grid = QGridLayout()
         self.ui.page_regs.setLayout(grid)
-        print("self.registers.items() len = " + str(len(self.registers.items()))) 
         for i, (reg, vals) in enumerate(self.registers.items()):
-            print("i = " + str(i)) 
             self.ui.register_widgets[reg] = []
             label_reg = QLabel(reg, self)
             label_reg.setAlignment(Qt.AlignRight)
@@ -133,29 +131,48 @@ class CpuRegistersWindow(QWidget):
     def parse_info(self):
         """parse register info from hmp plain text"""
         registers = {}
-        group = False
         values = []
-        for token in self.info.split():
-#            if group:
-#                # continue grouping together tokens until end parenthesis
-#                values[-1] += f' {token}'
-#                if token.endswith(')'):
-#                    group = False
-#            else:
-#                if token.startswith('('):
-#                    # start of group (register value details)
-#                    values[-1] += f' {token}'
-#                    group = True
-#                else:
-#                    if token.endswith(':'):
-#                        # assume register names end with ':'
-#                        values = []
-#                        registers[token] = values
-#                    else:
-#                        # register value
-#                        values.append(token)
-             reg_list = token.split("=")
-             print(str(reg_list)) 
+
+        tokens = self.info.split("\r\n")
+
+        for i in range(0, 3):
+            grp = tokens[i].split()
+            for tok in grp:
+                if "=" in tok and tok.split("=")[0] and tok.split("=")[1]:
+                    chars = tok.split("=")
+                    registers[chars[0]] = chars[1]
+
+        for i in range(3, 9):
+            grp = tokens[i].split()
+            registers[grp[0]] = grp[1].replace("=","") + grp[2] + grp[3] + grp[4] + grp[5] + grp[6]
+
+        grp = tokens[9].split()
+        registers[grp[0].split("=")[0]] = grp[0].split("=")[1] + grp[1] + grp[2] + grp[3] + grp[4] + grp[5]
+
+        grp = tokens[10].split()
+        registers[grp[0]] = grp[1].split("=")[1] + grp[2] + grp[3] + grp[4] + grp[5] + grp[6]
+
+        for i in range(11, 13):
+            grp = tokens[i].split()
+            registers[grp[0].split("=")[0]] = grp[1] + grp[2]
+
+        for i in range(13, 18):
+            grp = tokens[i].split()
+            for tok in grp:
+                if "=" in tok and tok.split("=")[0] and tok.split("=")[1]:
+                    chars = tok.split("=")
+                    registers[chars[0]] = chars[1]
+
+        for i in range(18, 22):
+            grp = tokens[i].split()
+            registers[grp[0].split("=")[0]] = grp[0].split("=")[1] + grp[1]
+            registers[grp[2].split("=")[0]] = grp[2].split("=")[1] + grp[3]
+
+        for i in range(22, 26):
+            grp = tokens[i].split()
+            registers[grp[0].split("=")[0]] = grp[0].split("=")[1]
+            registers[grp[1].split("=")[0]] = grp[1].split("=")[1]
+
         return registers
 
     def closeEvent(self, event):
