@@ -17,8 +17,9 @@
 import re
 import os.path
 import json
+import math
 
-from PySide2.QtWidgets import QWidget, QFileDialog, QGridLayout, QLabel, QLineEdit
+from PySide2.QtWidgets import QWidget, QFileDialog, QGridLayout, QLabel, QLineEdit, QHBoxLayout
 from PySide2.QtGui import QFont
 from PySide2.QtCore import Qt, QTimer
 
@@ -49,34 +50,34 @@ class CpuRegistersWindow(QWidget):
         # menu
         self.ui.action_file_save.triggered.connect(self.on_save)
         self.ui.action_options_autorefresh.triggered.connect(self.on_autorefresh)
-        self.ui.action_options_autorefresh.setChecked(True)
-        self.on_autorefresh(True)
+        self.ui.action_options_autorefresh.setChecked(False)
+        self.on_autorefresh(False)
         self.ui.action_options_textview.triggered.connect(self.on_textview)
         # dynamically populate register widgets
         self.get_info()
         self.ui.register_widgets = {}
         grid = QGridLayout()
         self.ui.page_regs.setLayout(grid)
-        for i, (reg, vals) in enumerate(self.registers.items()):
-            self.ui.register_widgets[reg] = []
-            label_reg = QLabel(reg, self)
-            label_reg.setAlignment(Qt.AlignRight)
-            grid.addWidget(label_reg, i, 0)
-            col = 1
-            for j, val in enumerate(vals):
-                le_val = QLineEdit(val, self)
+
+        regs = list(self.registers.keys())
+        vals = list(self.registers.values())
+        k = 0
+        for i in range(0, 3):
+            for j in range(0, math.ceil(len(self.registers)/3)):
+                horizontalLayout = QHBoxLayout()
+                horizontalLayout.addWidget(QLabel(regs[k], self))
+                le_val = QLineEdit(str(vals[k]), self)
                 le_val.setReadOnly(True)
                 le_val.setCursorPosition(0)
                 le_val.setFont(QFont('Monospace'))
-                if len(val) <= 8:
-                    grid.addWidget(le_val, i, col)
-                    col += 1
-                else:
-                    grid.addWidget(le_val, i, col, 1, 2)
-                    col += 2
-                self.ui.register_widgets[reg].append(le_val)
+                horizontalLayout.addWidget(le_val)
+                grid.addLayout(horizontalLayout, j, i)
+                # self.ui.register_widgets[regs[k]].append(le_val)
+
+                k = k + 1
+                
         for i in range(1, grid.columnCount()):
-            grid.setColumnMinimumWidth(i, 75)
+            grid.setColumnMinimumWidth(i, 40)
         grid.setRowStretch(grid.rowCount(), 1)
 
     def on_save(self):
@@ -113,6 +114,7 @@ class CpuRegistersWindow(QWidget):
                 for i, widget in enumerate(widgets):
                     old_value = widget.text()
                     new_value = self.registers[reg][i]
+                    print("old_value = ", old_value, " new value = ", new_value)
                     widget.setText(new_value)
                     widget.setCursorPosition(0)
                     if self.qmp.running:
@@ -134,40 +136,32 @@ class CpuRegistersWindow(QWidget):
         values = []
 
         tokens = self.info.split("\r\n")
-
         for i in range(0, 3):
             grp = tokens[i].split()
             for tok in grp:
                 if "=" in tok and tok.split("=")[0] and tok.split("=")[1]:
                     chars = tok.split("=")
                     registers[chars[0]] = chars[1]
-
         for i in range(3, 9):
             grp = tokens[i].split()
             registers[grp[0]] = grp[1].replace("=","") + grp[2] + grp[3] + grp[4] + grp[5] + grp[6]
-
         grp = tokens[9].split()
         registers[grp[0].split("=")[0]] = grp[0].split("=")[1] + grp[1] + grp[2] + grp[3] + grp[4] + grp[5]
-
         grp = tokens[10].split()
         registers[grp[0]] = grp[1].split("=")[1] + grp[2] + grp[3] + grp[4] + grp[5] + grp[6]
-
         for i in range(11, 13):
             grp = tokens[i].split()
             registers[grp[0].split("=")[0]] = grp[1] + grp[2]
-
         for i in range(13, 18):
             grp = tokens[i].split()
             for tok in grp:
                 if "=" in tok and tok.split("=")[0] and tok.split("=")[1]:
                     chars = tok.split("=")
                     registers[chars[0]] = chars[1]
-
         for i in range(18, 22):
             grp = tokens[i].split()
             registers[grp[0].split("=")[0]] = grp[0].split("=")[1] + grp[1]
             registers[grp[2].split("=")[0]] = grp[2].split("=")[1] + grp[3]
-
         for i in range(22, 26):
             grp = tokens[i].split()
             registers[grp[0].split("=")[0]] = grp[0].split("=")[1]
