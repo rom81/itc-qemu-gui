@@ -186,28 +186,21 @@ class QemuWindow(QMainWindow):
                     self.ui.label_status.setText("Connected")
                     self.ui.out_version.setText(str(self.qmp.banner['QMP']['version']['package']))
                     self.ui.btn_simstate.setEnabled(True)
-            else:
-                self.ui.le_qmp_ip.setText('127.0.0.1')
-                self.ui.le_qmp_port.setText('55555')
-                self.qmp.sock_connect('127.0.0.1', 55555)
-                if self.qmp.isSockValid():
-                    self.ui.label_status.setText("Connected")
-                    self.ui.out_version.setText(str(self.qmp.banner['QMP']['version']['package']))
-                    self.ui.btn_simstate.setEnabled(True)
-        # check if running initially
-        if self.qmp.running:
-            self.paused = False
-            self.ui.btn_simstate.setText('■')
-            self.ui.out_simstate.setText('<font color="green">Running</font>')
-        else:
-            self.paused = True 
-            self.ui.btn_simstate.setText('▶')
-            self.ui.out_simstate.setText('<font color="red">Paused</font>')
-        if not self.qmp.isAlive():
-            self.qmp.start()
-        if not self.t.isAlive():
-            self.t.start()
 
+                    # check if running initially
+                    if self.qmp.running:
+                        self.paused = False
+                        self.ui.btn_simstate.setText('■')
+                        self.ui.out_simstate.setText('<font color="green">Running</font>')
+                    else:
+                        self.paused = True
+                        self.ui.btn_simstate.setText('▶')
+                        self.ui.out_simstate.setText('<font color="red">Paused</font>')
+                    if not self.qmp.isAlive():
+                        self.qmp.start()
+                    if not self.t.isAlive():
+                        self.t.start()
+        
     def closeEvent(self, event):
         self.kill_thread.emit()
         event.accept()

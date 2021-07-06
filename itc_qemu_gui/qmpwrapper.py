@@ -169,16 +169,18 @@ class QMP(threading.Thread, QtCore.QObject):
             self.isValid = True
             self.connected = True
             self.banner = json.loads(self.sock.recv(256))
-        except OSError as e:
+        except (OSError, Exception) as e:
+            print(e)
             self.isValid = False
             self.connected = False
+            self.sock_sem.release()
+            return
         finally:
             self.sock_sem.release()
 
         self.command('qmp_capabilities')
         self.command('query-status')
 
- 
         #if not self.isAlive():
         #    print(self.listen()) # pluck empty return object
         #    print(self.listen()) # grab running state
