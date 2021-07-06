@@ -135,7 +135,7 @@ class CpuRegistersWindow(QWidget):
         registers = {}
         values = []
 
-        tokens = self.info.strip('[').strip(']').split("\r\n")
+        tokens = self.info.split("\r\n")
         for i in range(0, 3):
             grp = tokens[i].split()
             for tok in grp:
@@ -157,7 +157,7 @@ class CpuRegistersWindow(QWidget):
             for tok in grp:
                 if "=" in tok and tok.split("=")[0] and tok.split("=")[1]:
                     chars = tok.split("=")
-                    registers[chars[0]] = chars[1]
+                    registers[chars[0].strip('[')] = chars[1].strip(']')
         for i in range(18, 22):
             grp = tokens[i].split()
             registers[grp[0].split("=")[0]] = grp[0].split("=")[1] + grp[1]
