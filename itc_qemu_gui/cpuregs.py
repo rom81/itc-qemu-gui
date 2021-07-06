@@ -50,15 +50,15 @@ class CpuRegistersWindow(QWidget):
         # menu
         self.ui.action_file_save.triggered.connect(self.on_save)
         self.ui.action_options_autorefresh.triggered.connect(self.on_autorefresh)
-        self.ui.action_options_autorefresh.setChecked(False)
-        self.on_autorefresh(False)
+        self.ui.action_options_autorefresh.setChecked(True)
+        self.on_autorefresh(True)
         self.ui.action_options_textview.triggered.connect(self.on_textview)
         # dynamically populate register widgets
         self.get_info()
         self.ui.register_widgets = {}
         grid = QGridLayout()
         self.ui.page_regs.setLayout(grid)
-
+        # set up register/value grid
         regs = list(self.registers.keys())
         vals = list(self.registers.values())
         k = 0
@@ -72,7 +72,7 @@ class CpuRegistersWindow(QWidget):
                 le_val.setFont(QFont('Monospace'))
                 horizontalLayout.addWidget(le_val)
                 grid.addLayout(horizontalLayout, j, i)
-                # self.ui.register_widgets[regs[k]].append(le_val)
+                self.ui.register_widgets.setdefault(regs[k], le_val)
 
                 k = k + 1
                 
@@ -109,20 +109,20 @@ class CpuRegistersWindow(QWidget):
         # update plain text view
         self.ui.out_cpuregs.setPlainText(self.info)
         # update reg view if visible
+        i = 0
         if self.ui.stack.currentIndex() == 0:
             for reg, widgets in self.ui.register_widgets.items():
-                for i, widget in enumerate(widgets):
-                    old_value = widget.text()
-                    new_value = self.registers[reg][i]
-                    print("old_value = ", old_value, " new value = ", new_value)
-                    widget.setText(new_value)
-                    widget.setCursorPosition(0)
-                    if self.qmp.running:
-                        if old_value != new_value:
-                            widget.setStyleSheet('color: blue')
-                        else:
-                            widget.setStyleSheet('')
-                    widget.setCursorPosition(0)
+                old_value = widgets.text()
+                new_value = self.registers[reg]
+                i = i+1
+                widgets.setText(new_value)
+                widgets.setCursorPosition(0)
+                if self.qmp.running:
+                    if old_value != new_value:
+                        widgets.setStyleSheet('color: blue')
+                    else:
+                        widgets.setStyleSheet('')
+                widgets.setCursorPosition(0)
 
     def get_info(self):
         """get cpu register info"""
@@ -135,7 +135,7 @@ class CpuRegistersWindow(QWidget):
         registers = {}
         values = []
 
-        tokens = self.info.split("\r\n")
+        tokens = self.info.strip('[').strip(']').split("\r\n")
         for i in range(0, 3):
             grp = tokens[i].split()
             for tok in grp:
