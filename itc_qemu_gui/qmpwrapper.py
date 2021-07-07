@@ -174,7 +174,7 @@ class QMP(threading.Thread, QtCore.QObject):
             self.isValid = False
             self.connected = False
             self.sock_sem.release()
-            return
+            return e
         finally:
             self.sock_sem.release()
 

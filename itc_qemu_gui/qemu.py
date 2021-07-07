@@ -181,7 +181,7 @@ class QemuWindow(QMainWindow):
             host = self.ui.le_qmp_ip.text()
             port = self.ui.le_qmp_port.text()
             if port.isnumeric():
-                self.qmp.sock_connect(host, int(port))
+                status = self.qmp.sock_connect(host, int(port))
                 if self.qmp.isSockValid():
                     self.ui.label_status.setText("Connected")
                     self.ui.out_version.setText(str(self.qmp.banner['QMP']['version']['package']))
@@ -200,7 +200,9 @@ class QemuWindow(QMainWindow):
                         self.qmp.start()
                     if not self.t.isAlive():
                         self.t.start()
-        
+                else:
+                    self.ui.label_status.setText("Failed to connect: " + str(status))
+
     def closeEvent(self, event):
         self.kill_thread.emit()
         event.accept()
