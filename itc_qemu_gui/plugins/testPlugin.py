@@ -35,4 +35,5 @@ class TestPlugin(QWidget, IPlugin):
         self.setLayout(self.layout)
 
     def handle_data(self, data):
-        self.text.append(f'{data}\n')
+        if data:
+            self.text.append(f'{data}\n')

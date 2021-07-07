@@ -216,7 +216,7 @@ class TimeThread(threading.Thread):
 
     def run(self):
         while True:
-            time.sleep(.5)
-            args = {'clock': 'virtual'}
-            self.qmp.command('itc-sim-time', args=args)
-
+            if self.qmp.running:
+                time.sleep(.5)
+                args = {'clock': 'virtual'}
+                self.qmp.command('itc-sim-time', args=args)
