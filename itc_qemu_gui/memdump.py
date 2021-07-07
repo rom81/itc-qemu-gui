@@ -46,7 +46,6 @@ class MemoryDumpWindow(QWidget):
     def __init__(self, qmp, base=0, max=constants['block_size'], parent=None):
         super().__init__(parent)
        
-        print("base = ", hex(base), " max = ", hex(max)) 
         self.flag = False
         self.threshold = 2048 # number of resident bytes
 
@@ -57,7 +56,6 @@ class MemoryDumpWindow(QWidget):
         #self.maxAddress = self.baseAddress
         self.maxAddress = max
  
-        print("self.baseAddress = ", hex(self.baseAddress), " self.maxAddress = ", hex(self.maxAddress)) 
         self.delta = 4 # adds a small buffer area for scrolling action to happen
 
         self.sem = QSemaphore(1) # semaphore for controlling access to the enabling / disabling of the scroll listening
@@ -230,6 +228,7 @@ class MemoryDumpWindow(QWidget):
                 scroll_goto = self.max
 
         elif self.pos < self.min + self.delta:    # scrolling  up
+
             addr_cur = self.ui.out_address.textCursor()
             mem_cur = self.ui.out_memory.textCursor()
             chr_cur = self.ui.out_char.textCursor()
@@ -246,11 +245,14 @@ class MemoryDumpWindow(QWidget):
             self.ui.out_memory.insertPlainText(s + '\n')
             self.ui.out_char.insertPlainText(chars + '\n')
             
-            if self.flag:
-                self.flag = False
-                scroll_goto = (constants['block_size'] / self.threshold) * self.max
+            if self.pos == 0 and self.min == 0:
+                pass
             else:
-                scroll_goto = self.ui.out_char.verticalScrollBar().maximum() - self.max
+                if self.flag:
+                    self.flag = False
+                    scroll_goto = (constants['block_size'] / self.threshold) * self.max
+                else:
+                    scroll_goto = self.ui.out_char.verticalScrollBar().maximum() - self.max
 
         else:
             self.ui.out_address.setPlainText(addresses)
@@ -269,7 +271,6 @@ class MemoryDumpWindow(QWidget):
         self.sem.release()
 
     def grab_data(self, val=0, size=constants['block_size'], grouping=1, refresh=False):       
-        print("in grab_data: base address = ", hex(val), " size = ", size) 
         if val == None:
             val = 0
         if size == None:
