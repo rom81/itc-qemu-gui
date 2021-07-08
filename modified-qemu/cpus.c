@@ -2318,57 +2318,42 @@ exit:
 
 MemReturn *qmp_itc_pmem(int64_t hash, int64_t addr, int64_t size, int64_t grouping, Error **errp)
 {
-    switch(grouping) {
-        case 1:
-        case 2:
-        case 4:
-        case 8:
-            break;
-        default:
-            grouping = 1;
-            break;
-    }
-    uint32_t l;
-    uint8_t buf[1024];
+    uint32_t l, BUF_SIZE = 1024;
+    uint8_t buf[BUF_SIZE];
+
     MemReturn*head = g_malloc0(sizeof(*head));
     head->hash = hash;
     head->vals = NULL;
     MemValList *cur = head->vals;
-    bool first = true;
+
     while (size != 0) {
-        l = sizeof(buf);
-        if (l > size)
-            l = size;
+
+        l = (BUF_SIZE > size) ? size : BUF_SIZE;
         cpu_physical_memory_read(addr, buf, l);
+
         int i = 0;
-        for(i = 0; i < l; i += grouping) {
-            if(first) {
+        for (i = 0; i < l; i++) {
+            if (i == 0) {
                 cur = g_malloc0(sizeof(*cur));
                 cur->value = g_malloc0(sizeof(*cur->value));
+
                 cur->value->val = 0;
-                int j = 0;
-                for(j = 0; j < grouping && i + j < l; j++) {
-                    cur->value->val = cur->value->val << 8;
-                    cur->value->val += buf[i+j];
-                }
+                cur->value->val = cur->value->val << 8;
+                cur->value->val += buf[i];
                 cur->value->ismapped = itc_check_mapped(addr + i);
+
                 cur->next = NULL;
                 head->vals = cur;
-                first = false;
             }
             else {
                 MemValList *temp = g_malloc0(sizeof(*temp));
                 temp->value = g_malloc0(sizeof(*temp->value));
+
                 temp->value->val = 0;
+                temp->value->val = temp->value->val << 8;
+                temp->value->val += buf[i];
                 temp->value->ismapped = itc_check_mapped(addr + i);
-                int j = 0;
-                for(j = 0; j < grouping && i + j < l; j++) {
-                    if(!itc_check_mapped(addr + i + j)){
-                        temp->value->ismapped = false;
-                    }
-                    temp->value->val = temp->value->val << 8;
-                    temp->value->val += buf[i+j];
-                }
+
                 cur->next = temp;
                 temp->next = NULL;
                 cur = temp;

@@ -81,8 +81,6 @@ class MemoryDumpWindow(QWidget):
         self.t = MyThread(self)
         self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, grouping=self.ui.combo_grouping.currentText(), refresh=True))
         self.qmp.stateChanged.connect(self.t.halt)
-        self.t.running = self.qmp.running
-        self.t.start()
 
     def init_ui(self):   
         self.ui = Ui_memdump()
@@ -270,7 +268,7 @@ class MemoryDumpWindow(QWidget):
         self.ui.out_char.verticalScrollBar().valueChanged.connect(self.handle_scroll)
         self.sem.release()
 
-    def grab_data(self, val=0, size=constants['block_size'], grouping=1, refresh=False):       
+    def grab_data(self, val=0, size=constants['block_size'], grouping=1, refresh=False):
         if val == None:
             val = 0
         if size == None:
