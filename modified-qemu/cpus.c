@@ -2286,8 +2286,7 @@ exit:
     fclose(f);
 }
 
-void qmp_pmemsave(int64_t addr, int64_t size, const char *filename,
-                  Error **errp)
+void qmp_pmemsave(int64_t addr, int64_t size, const char *filename, Error **errp)
 {
     FILE *f;
     uint32_t l;
@@ -2316,7 +2315,7 @@ exit:
     fclose(f);
 }
 
-MemReturn *qmp_itc_pmem(int64_t hash, int64_t addr, int64_t size, int64_t grouping, Error **errp)
+MemReturn *qmp_itc_pmem(int64_t hash, int64_t addr, int64_t size, Error **errp)
 {
     uint32_t l, BUF_SIZE = 1024;
     uint8_t buf[BUF_SIZE];

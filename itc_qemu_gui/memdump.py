@@ -114,11 +114,9 @@ class MemoryDumpWindow(QWidget):
         self.ui.splitter.setSizes([100, 200, 200])
 
     def disable_save(self, val):
-        print("memdump.py::MemoryDumpWindow::disable_save()")
         self.ui.btn_save.setEnabled(not val)
 
     def save_to_file(self):
-        print("memdump.py::MemoryDumpWindow::save_to_file()")
         try:
             filename = QFileDialog().getSaveFileName(self, 'Save', '.', options=QFileDialog.DontUseNativeDialog)
         except Exception as e:
@@ -136,7 +134,6 @@ class MemoryDumpWindow(QWidget):
         self.qmp.command('pmemsave', args=args)
 
     def auto_refresh_check(self, value):
-        print("memdump.py::MemoryDumpWindow::auto_refresh_check()")
         if self.ui.btn_autorefresh.checkState() == Qt.CheckState.Checked and not self.t.isRunning():
             self.t = MyThread(self)
             self.t.timing_signal.connect(lambda:self.grab_data(val=self.baseAddress, size=self.maxAddress-self.baseAddress, grouping=self.ui.combo_grouping.currentText(), refresh=True))
@@ -269,12 +266,9 @@ class MemoryDumpWindow(QWidget):
 
         self.ui.out_char.verticalScrollBar().setValue(scroll_goto)
         self.ui.out_char.verticalScrollBar().valueChanged.connect(self.handle_scroll)
-        print("memdump.py::MemoryDumpWindow::update_text() trying to release sem")
         self.sem.release()
-        print("memdump.py::MemoryDumpWindow::update_text() -- sem released") 
 
     def grab_data(self, val=0, size=constants['block_size'], grouping=1, refresh=False):
-        print("memdump.py::MemoryDumpWindow::grab_data()")
         if val == None:
             val = 0
         if size == None:
@@ -309,10 +303,6 @@ class MemoryDumpWindow(QWidget):
             size = constants['block_size']
         if size > self.threshold:
             size = self.threshold
-        
-        # print("memdump.py::MemoryDumpWindow::grab_data() -- trying to acquire sem")
-        # self.sem.acquire()
-        # print("memdump.py::MemoryDumpWindow::grab_data() -- acquired sem")
 
         val = val - (val % 16)
         if val < self.baseAddress or refresh:
@@ -322,9 +312,7 @@ class MemoryDumpWindow(QWidget):
         if val + size > self.max_size:
             size = self.max_size - val
 
-        print("memdump.py::MemoryDumpWindow::grab_data() -- trying to acquire sem")
         self.sem.acquire()
-        print("memdump.py::MemoryDumpWindow::grab_data() -- acquired sem")
         
         try:
             self.ui.out_char.verticalScrollBar().valueChanged.disconnect(self.handle_scroll)
@@ -335,9 +323,7 @@ class MemoryDumpWindow(QWidget):
         self.min = self.ui.out_char.verticalScrollBar().minimum()
         self.group = grouping
 
-        print("memdump.py::MemoryDumpWindow::grab_data() -- trying to release sem")
         self.sem.release()
-        print("memdump.py::MemoryDumpWindow::grab_data() -- released sem")
 
         self.refresh = refresh
         if refresh: 
@@ -352,14 +338,12 @@ class MemoryDumpWindow(QWidget):
         args = {
                 'addr': val,
                 'size': size,
-                'hash': self.hash,
-                'grouping': 1
+                'hash': self.hash
                 }
         self.qmp.command('itc-pmem', args=args)
 
 
     def find(self, addr, size):
-        print("memdump.py::MemoryDumpWindow::find()")
         try:
             addr = int(addr, 0)
         except ValueError as e:
@@ -384,7 +368,6 @@ class MemoryDumpWindow(QWidget):
 
 
     def clear_highlight(self):
-        print("memdump.py::MemoryDumpWindow::clear_highlight()")
         fmt = QTextCharFormat()
         fmt.setFont('Courier New')
         # clearing past highlights
@@ -402,7 +385,6 @@ class MemoryDumpWindow(QWidget):
 
 
     def highlight(self, addr, group):
-        print("memdump.py::MemoryDumpWindow::highlight()")
         self.clear_highlight()
         
         # adding new highlights
@@ -457,7 +439,6 @@ class MemoryDumpWindow(QWidget):
 
 
     def handle_scroll(self):
-        print("memdump.py::MemoryDumpWindow::handle_scroll()")
         if self.baseAddress > 0 and self.ui.out_char.verticalScrollBar().value() < self.ui.out_char.verticalScrollBar().minimum() + self.delta:
             size = constants['block_size']
             if self.maxAddress - self.baseAddress >= self.threshold:
@@ -475,7 +456,6 @@ class MemoryDumpWindow(QWidget):
                 self.grab_data(val=self.maxAddress, grouping=self.ui.combo_grouping.currentText())
 
     def change_endian(self, endian):
-        print("memdump.py::MemoryDumpWindow::change_endian()")
         self.endian_sem.acquire()
         self.endian = endian
         self.endian_sem.release()
@@ -491,17 +471,13 @@ class MyThread(QThread):
         self.running = True
     def run(self):
         while True:
-            print("memdump.py::MyThread::run() == trying to acquire sem")
             if self.sem.tryAcquire(1, 1000): # try to acquire and wait 1s to try to acquire
-                print("memdump.py::MyThread::run() == acquired sem")
                 break
             if self.running:
                 self.timing_signal.emit(True)
 
     def end(self, b):
-        print("memdump.py::MyThread::end() -- releasing sem")
         self.sem.release()
-        print("memdump.py::MyThread::end() -- sem released")
 
     def halt(self, running):
         self.running = running

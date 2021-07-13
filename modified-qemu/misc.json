@@ -1832,4 +1832,4 @@
 #
 # Since: 4.2
 ##
-{ 'command': 'itc-pmem', 'data': {'hash': 'int64', 'addr': 'int64', 'size': 'int64', 'grouping': 'int'}, 'returns': 'MemReturn' }
+{ 'command': 'itc-pmem', 'data': {'hash': 'int64', 'addr': 'int64', 'size': 'int64'}, 'returns': 'MemReturn' }
