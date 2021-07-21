@@ -1833,3 +1833,30 @@
 # Since: 4.2
 ##
 { 'command': 'itc-pmem', 'data': {'hash': 'int64', 'addr': 'int64', 'size': 'int64'}, 'returns': 'MemReturn' }
+
+##
+# @CpuReg:
+# 
+# CPU register name and associated value
+#
+# Since: 4.2
+##
+{'struct': 'CpuReg', 'data': { 'reg': 'str', 'val': 'uint64' } }
+
+##
+# @CpuReturn:
+# 
+# List of CPU registers and their values
+#
+# Since: 4.2
+##
+{'struct': 'CpuReturn', 'data': { 'vals': ['CpuReg'] } }
+
+##
+# @itc-cpureg:
+# 
+# Return CPU registers and their values
+#
+# Since: 4.2
+##
+{ 'command': 'itc-cpureg', 'data': {}, 'returns': 'CpuReturn' }

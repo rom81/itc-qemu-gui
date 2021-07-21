@@ -2364,6 +2364,35 @@ MemReturn *qmp_itc_pmem(int64_t hash, int64_t addr, int64_t size, Error **errp)
     return head;
 }
 
+CpuReturn *qmp_itc_cpureg(Error **errp)
+{
+    CpuReturn *head = g_malloc0(sizeof(*head));
+
+
+    // const QDict *qdict;
+
+    // bool all_cpus = qdict_get_try_bool(qdict, "cpustate_all", false);
+    // CPUState *cs;
+
+    // if (all_cpus) {
+    //     CPU_FOREACH(cs) {
+    //         monitor_printf(mon, "\nCPU#%d\n", cs->cpu_index);
+    //         cpu_dump_state(cs, NULL, CPU_DUMP_FPU);
+    //     }
+    // } else {
+    //     cs = mon_get_cpu();
+
+    //     if (!cs) {
+    //         monitor_printf(mon, "No CPU available\n");
+    //         return;
+    //     }
+
+    //     cpu_dump_state(cs, NULL, CPU_DUMP_FPU);
+    // }
+    
+    return head;
+}
+
 void qmp_inject_nmi(Error **errp)
 {
     nmi_monitor_handle(monitor_get_cpu_index(), errp);
