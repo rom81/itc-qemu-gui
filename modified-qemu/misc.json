@@ -1841,7 +1841,7 @@
 #
 # Since: 4.2
 ##
-{'struct': 'CpuReg', 'data': { 'reg': 'str', 'val': 'uint64' } }
+{'struct': 'CpuReg', 'data': { 'reg': 'str', 'val': 'str' } }
 
 ##
 # @CpuReturn:

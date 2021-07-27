@@ -123,6 +123,15 @@ static bool all_cpu_threads_idle(void)
     return true;
 }
 
+typedef struct GDBRegisterState {
+    int base_reg;
+    int num_regs;
+    gdb_reg_cb get_reg;
+    gdb_reg_cb set_reg;
+    const char *xml;
+    struct GDBRegisterState *next;
+} GDBRegisterState;
+
 /***********************************************************/
 /* guest cycle counter */
 
@@ -2367,28 +2376,60 @@ MemReturn *qmp_itc_pmem(int64_t hash, int64_t addr, int64_t size, Error **errp)
 CpuReturn *qmp_itc_cpureg(Error **errp)
 {
     CpuReturn *head = g_malloc0(sizeof(*head));
+    head->vals = NULL;
+    CpuRegList *cur = head->vals;
 
+    // TODO: Do this for all CPUs
+    CPUState *cpu;
+    cpu = qemu_get_cpu(0);
 
-    // const QDict *qdict;
+    if (!cpu) 
+    {
+        error_setg(errp, "No CPU available");
+        fprintf(stderr, "NO CPU available\n");
+        return NULL;
+    }
 
-    // bool all_cpus = qdict_get_try_bool(qdict, "cpustate_all", false);
-    // CPUState *cs;
+    fprintf(stderr, "number of registers: %d\n", cpu->gdb_num_regs);
+    uint8_t buf[4096];
 
-    // if (all_cpus) {
-    //     CPU_FOREACH(cs) {
-    //         monitor_printf(mon, "\nCPU#%d\n", cs->cpu_index);
-    //         cpu_dump_state(cs, NULL, CPU_DUMP_FPU);
-    //     }
-    // } else {
-    //     cs = mon_get_cpu();
+    CPUClass *cc = CPU_GET_CLASS(cpu);
+    fprintf(stderr, "gdb_num_core_regs = %d\n", cc->gdb_num_core_regs);
+    for (int reg = 0; reg < cc->gdb_num_core_regs; reg++)
+    {
+        
+        int size = cc->gdb_read_register(cpu, buf, reg);
+        fprintf(stderr, "reg #%d, contents: ", reg);
+        for (int i = 0; i < size; i++)
+            fprintf(stderr, "%02X", buf[i]);
+        fprintf(stderr, "\n");
+        
+        if (reg == 0)
+        { 
+            cur = g_malloc0(sizeof(*cur));
+            cur->value = g_malloc0(sizeof(*cur->value));
 
-    //     if (!cs) {
-    //         monitor_printf(mon, "No CPU available\n");
-    //         return;
-    //     }
+            cur->value->val = g_strdup((const gchar *)buf);
+            cur->value->reg = g_strdup((const gchar *)"TEMP");
 
-    //     cpu_dump_state(cs, NULL, CPU_DUMP_FPU);
-    // }
+            cur->next = NULL;
+            head->vals = cur;
+        }
+        else
+        {
+            CpuRegList *temp = g_malloc0(sizeof(*temp));
+            temp->value = g_malloc0(sizeof(*temp->value));
+
+            cur->value->val = g_strdup((const gchar *)buf);
+            temp->value->reg = g_strdup((const gchar *)"TEMP");
+
+            cur->next = temp;
+            temp->next = NULL;
+            cur = temp;
+        }
+    }
+
+    fprintf(stderr, "file: %s\n", cc->gdb_core_xml_file);
     
     return head;
 }

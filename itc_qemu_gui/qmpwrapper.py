@@ -101,6 +101,7 @@ class QMP(threading.Thread, QtCore.QObject):
             while self.connected:
                 try:
                     data = self.sock.recv(4096)
+                    print(data)
                 except OSError:
                     return ''
                 total_data.extend(data)
