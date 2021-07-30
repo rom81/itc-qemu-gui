@@ -1850,7 +1850,7 @@
 #
 # Since: 4.2
 ##
-{'struct': 'CpuReturn', 'data': { 'vals': ['CpuReg'] } }
+{'struct': 'CpuReturn', 'data': { 'vals': ['CpuReg'], 'num_vals': 'int64' } }
 
 ##
 # @itc-cpureg:
