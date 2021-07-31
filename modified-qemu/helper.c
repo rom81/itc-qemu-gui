@@ -414,10 +414,7 @@ void add_reg(CpuReturn **head, CpuRegList **cur, char* reg_name, char* reg_value
         (*cur)->value = g_malloc0(sizeof(*(*cur)->value));
 
         (*cur)->value->reg = g_strdup(reg_name);
-        fprintf(stderr,"reg strdup\n");
-
         (*cur)->value->val = g_strdup(reg_value);
-        fprintf(stderr,"val strdup\n");
 
         (*cur)->next = NULL;
         (*head)->vals = (*cur);
@@ -427,15 +424,13 @@ void add_reg(CpuReturn **head, CpuRegList **cur, char* reg_name, char* reg_value
         temp->value = g_malloc0(sizeof(*temp->value));
 
         temp->value->reg = g_strdup(reg_name);
-        fprintf(stderr,"reg strdup\n");
-
         temp->value->val = g_strdup(reg_value);
-        fprintf(stderr,"val strdup\n");
 
         (*cur)->next = temp;
         temp->next = NULL;
         (*cur) = temp;
     }
+    (*head)->num_vals++;
 }
 
 // static void cpu_x86_return_seg_cache(CPUX86State *env, const char *name, 
@@ -509,14 +504,14 @@ CpuReturn* x86_cpu_return_state(CPUState *cs, int flags)
 
     X86CPU *cpu = X86_CPU(cs);
     CPUX86State *env = &cpu->env;
-    // int eflags;
-    // int i;
-    // int nb;
+    int eflags;
+    int i;
+    int nb;
     // char cc_op_name[32];
     // static const char *seg_name[6] = { "ES", "CS", "SS", "DS", "FS", "GS" };
     char *temp = g_malloc0(50);
 
-    // eflags = cpu_compute_eflags(env);
+    eflags = cpu_compute_eflags(env);
 #ifdef TARGET_X86_64
     if (env->hflags & HF_CS64_MASK) {
 
@@ -528,74 +523,73 @@ CpuReturn* x86_cpu_return_state(CPUState *cs, int flags)
         for (int i = R_EAX; i <= R_R15; i++)
         {
             sprintf(temp, "%016" PRIx64, env->regs[i]);
-            add_reg(&head, (char*)reg_strings_x86[i], temp);
+            add_reg(&head, &cur, (char*)reg_strings_x86[i], temp);
         }
 
         sprintf(temp, "%016" PRIx64, env->eip);
-        add_reg(&head, (char*)"RIP", temp);
+        add_reg(&head, &cur, (char*)"RIP", temp);
 
         sprintf(temp, "%08x [%c%c%c%c%c%c%c]", 
             eflags, eflags & DF_MASK ? 'D' : '-',
             eflags & CC_O ? 'O' : '-', eflags & CC_S ? 'S' : '-',
             eflags & CC_Z ? 'Z' : '-', eflags & CC_A ? 'A' : '-',
             eflags & CC_P ? 'P' : '-', eflags & CC_C ? 'C' : '-',);
-        add_reg(&head, (char*)"RFL", temp);
+        add_reg(&head, &cur, (char*)"RFL", temp);
 
         sprintf(temp, "%d", env->hflags & HF_CPL_MASK);
-        add_reg(&head, (char*)"CPL", temp);
+        add_reg(&head, &cur, (char*)"CPL", temp);
 
          sprintf(temp, "%d", (env->hflags >> HF_INHIBIT_IRQ_SHIFT) & 1);
-        add_reg(&head, (char*)"II", temp);
+        add_reg(&head, &cur, (char*)"II", temp);
         
         sprintf(temp, "%d", (env->a20_mask >> 20) & 1);
-        add_reg(&head, (char*)"A20", temp);
+        add_reg(&head, &cur, (char*)"A20", temp);
 
         sprintf(temp, "%d", (env->hflags >> HF_SMM_SHIFT) & 1);
-        add_reg(&head, (char*)"SMM", temp);
+        add_reg(&head, &cur, (char*)"SMM", temp);
 
         sprintf(temp, "%d", cs->halted);
-        add_reg(&head, (char*)"HLT", temp);
+        add_reg(&head, &cur, (char*)"HLT", temp);
     } 
     else
 #endif
     {
-        // static const char *reg_strings[] = {"EAX","ECX","EDX","EBX",
-        //                                     "ESP","EBP","ESI","EDI"};
+        static const char *reg_strings[] = {"EAX","ECX","EDX","EBX",
+                                            "ESP","EBP","ESI","EDI"};
 
-        // for (i = R_EAX; i <= R_EDI; i++)
-        // {
-        //     sprintf(temp, "%016" PRIx64, (long unsigned int)env->regs[i]);
-        //     add_reg(&head, (char*)reg_strings[i], temp);
-        // }
+        for (i = R_EAX; i <= R_EDI; i++)
+        {
+            sprintf(temp, "%016" PRIx64, (long unsigned int)env->regs[i]);
+            add_reg(&head, &cur, (char*)reg_strings[i], temp);
+        }
 
         sprintf(temp, "%08x", (uint32_t)env->eip);
         add_reg(&head, &cur, (char*)"EIP", temp);
-        fprintf(stderr,"after add_reg\n");
 
-        // sprintf(temp, "%08x [%c%c%c%c%c%c%c]", eflags,
-        //              eflags & DF_MASK ? 'D' : '-',
-        //              eflags & CC_O ? 'O' : '-',
-        //              eflags & CC_S ? 'S' : '-',
-        //              eflags & CC_Z ? 'Z' : '-',
-        //              eflags & CC_A ? 'A' : '-',
-        //              eflags & CC_P ? 'P' : '-',
-        //              eflags & CC_C ? 'C' : '-');
-        // add_reg(&head, (char*)"EFL", temp);
+        sprintf(temp, "%08x [%c%c%c%c%c%c%c]", eflags,
+                     eflags & DF_MASK ? 'D' : '-',
+                     eflags & CC_O ? 'O' : '-',
+                     eflags & CC_S ? 'S' : '-',
+                     eflags & CC_Z ? 'Z' : '-',
+                     eflags & CC_A ? 'A' : '-',
+                     eflags & CC_P ? 'P' : '-',
+                     eflags & CC_C ? 'C' : '-');
+        add_reg(&head, &cur, (char*)"EFL", temp);
 
-        // sprintf(temp, "%d", env->hflags & HF_CPL_MASK);
-        // add_reg(&head, (char*)"CPL", temp);
+        sprintf(temp, "%d", env->hflags & HF_CPL_MASK);
+        add_reg(&head, &cur, (char*)"CPL", temp);
 
-        // sprintf(temp, "%d", (env->hflags >> HF_INHIBIT_IRQ_SHIFT) & 1);
-        // add_reg(&head, (char*)"II", temp);
+        sprintf(temp, "%d", (env->hflags >> HF_INHIBIT_IRQ_SHIFT) & 1);
+        add_reg(&head, &cur, (char*)"II", temp);
         
-        // sprintf(temp, "%d", (env->a20_mask >> 20) & 1);
-        // add_reg(&head, (char*)"A20", temp);
+        sprintf(temp, "%d", (env->a20_mask >> 20) & 1);
+        add_reg(&head, &cur, (char*)"A20", temp);
 
-        // sprintf(temp, "%d", (env->hflags >> HF_SMM_SHIFT) & 1);
-        // add_reg(&head, (char*)"SMM", temp);
+        sprintf(temp, "%d", (env->hflags >> HF_SMM_SHIFT) & 1);
+        add_reg(&head, &cur, (char*)"SMM", temp);
 
-        // sprintf(temp, "%d", cs->halted);
-        // add_reg(&head, (char*)"HLT", temp);
+        sprintf(temp, "%d", cs->halted);
+        add_reg(&head, &cur, (char*)"HLT", temp);
     }
 
     // for(i = 0; i < 6; i++) 
@@ -604,114 +598,114 @@ CpuReturn* x86_cpu_return_state(CPUState *cs, int flags)
 //     cpu_x86_return_seg_cache(env, "LDT", &env->ldt, &head);
 //     cpu_x86_return_seg_cache(env, "TR", &env->tr, &head);
 
-// #ifdef TARGET_X86_64
-//     if (env->hflags & HF_LMA_MASK) {
-//         sprintf(temp, "%016" PRIx64 " %08x", env->gdt.base, env->gdt.limit);
-//         add_reg(&head, (char*)"GDT", temp);
-//         sprintf(temp, "%016" PRIx64 " %08x", env->idt.base, env->idt.limit);
-//         add_reg(&head, (char*)"IDT", temp);
+#ifdef TARGET_X86_64
+    if (env->hflags & HF_LMA_MASK) {
+        sprintf(temp, "%016" PRIx64 " %08x", env->gdt.base, env->gdt.limit);
+        add_reg(&head, &cur, (char*)"GDT", temp);
+        sprintf(temp, "%016" PRIx64 " %08x", env->idt.base, env->idt.limit);
+        add_reg(&head, &cur, (char*)"IDT", temp);
 
-//         sprintf(temp, "CR0=%08x", (uint32_t)env->cr[0]);
-//         add_reg(&head, (char*)"CR0", temp);
-//         sprintf(temp, "CR2=%016" PRIx64, env->cr[2]);
-//         add_reg(&head, (char*)"CR2", temp);
-//         sprintf(temp, "%016" PRIx64, env->cr[3]);
-//         add_reg(&head, (char*)"CR3", temp);
-//         sprintf(temp, "%08x", (uint32_t)env->cr[4]);
-//         add_reg(&head, (char*)"CR4", temp);
+        sprintf(temp, "CR0=%08x", (uint32_t)env->cr[0]);
+        add_reg(&head, &cur, (char*)"CR0", temp);
+        sprintf(temp, "CR2=%016" PRIx64, env->cr[2]);
+        add_reg(&head, &cur, (char*)"CR2", temp);
+        sprintf(temp, "%016" PRIx64, env->cr[3]);
+        add_reg(&head, &cur, (char*)"CR3", temp);
+        sprintf(temp, "%08x", (uint32_t)env->cr[4]);
+        add_reg(&head, &cur, (char*)"CR4", temp);
         
-//         for(i = 0; i < 4; i++)
-//         {
-//             sprintf(temp, "DR%d", i);
-//             char *temp2 = NULL;
-//             sprintf(temp2, "%016" PRIx64, env->dr[i]);
-//             add_reg(&head, temp, temp2);
-//         }
+        for(i = 0; i < 4; i++)
+        {
+            sprintf(temp, "DR%d", i);
+            char *temp2 = NULL;
+            sprintf(temp2, "%016" PRIx64, env->dr[i]);
+            add_reg(&head, temp, temp2);
+        }
 
-//         sprintf(temp, "%016" PRIx64, env->dr[6]);
-//         add_reg(&head, (char*)"DR6", temp);
-//         sprintf(temp, "%016" PRIx64, env->dr[7]);
-//         add_reg(&head, (char*)"DR7", temp);
-//     } else
-// #endif
-//     {
-//         sprintf(temp, "%08x %08x", (uint32_t)env->gdt.base, env->gdt.limit);
-//         add_reg(&head, (char*)"GDT", temp);
-//         sprintf(temp, "%08x %08x", (uint32_t)env->idt.base, env->idt.limit);
-//         add_reg(&head, (char*)"IDT", temp);
+        sprintf(temp, "%016" PRIx64, env->dr[6]);
+        add_reg(&head, &cur, (char*)"DR6", temp);
+        sprintf(temp, "%016" PRIx64, env->dr[7]);
+        add_reg(&head, &cur, (char*)"DR7", temp);
+    } else
+#endif
+    {
+        sprintf(temp, "%08x %08x", (uint32_t)env->gdt.base, env->gdt.limit);
+        add_reg(&head, &cur, (char*)"GDT", temp);
+        sprintf(temp, "%08x %08x", (uint32_t)env->idt.base, env->idt.limit);
+        add_reg(&head, &cur, (char*)"IDT", temp);
         
-//         sprintf(temp, "%08x", (uint32_t)env->cr[0]);
-//         add_reg(&head, (char*)"CR0", temp);
-//         sprintf(temp, "%08x", (uint32_t)env->cr[2]);
-//         add_reg(&head, (char*)"CR2", temp);
-//         sprintf(temp, "%08x", (uint32_t)env->cr[3]);
-//         add_reg(&head, (char*)"CR3", temp);
-//         sprintf(temp, "%08x", (uint32_t)env->cr[4]);
-//         add_reg(&head, (char*)"CR4", temp);
+        sprintf(temp, "%08x", (uint32_t)env->cr[0]);
+        add_reg(&head, &cur, (char*)"CR0", temp);
+        sprintf(temp, "%08x", (uint32_t)env->cr[2]);
+        add_reg(&head, &cur, (char*)"CR2", temp);
+        sprintf(temp, "%08x", (uint32_t)env->cr[3]);
+        add_reg(&head, &cur, (char*)"CR3", temp);
+        sprintf(temp, "%08x", (uint32_t)env->cr[4]);
+        add_reg(&head, &cur, (char*)"CR4", temp);
 
-//         for(i = 0; i < 4; i++) 
-//         {
-//             sprintf(temp, "DR%d", i);
-//             char *temp2 = NULL;
-//             sprintf(temp2, TARGET_FMT_lx, env->dr[i]);
-//             add_reg(&head, temp, temp2);
-//         }
-//         sprintf(temp, TARGET_FMT_lx, env->dr[6]);
-//         add_reg(&head, (char*)"DR6", temp);
+        for(i = 0; i < 4; i++) 
+        {
+            sprintf(temp, "DR%d", i);
+            char *temp2 = g_malloc0(50);
+            sprintf(temp2, TARGET_FMT_lx, env->dr[i]);
+            add_reg(&head, &cur, temp, temp2);
+        }
+        sprintf(temp, TARGET_FMT_lx, env->dr[6]);
+        add_reg(&head, &cur, (char*)"DR6", temp);
 
-//         sprintf(temp, TARGET_FMT_lx, env->dr[7]);
-//         add_reg(&head, (char*)"DR7", temp);
-//     }
+        sprintf(temp, TARGET_FMT_lx, env->dr[7]);
+        add_reg(&head, &cur, (char*)"DR7", temp);
+    }
 
-//     sprintf(temp, "%016" PRIx64, env->efer);
-//     add_reg(&head, (char*)"EFER", temp);
+    sprintf(temp, "%016" PRIx64, env->efer);
+    add_reg(&head, &cur, (char*)"EFER", temp);
 
-//     if (flags & CPU_DUMP_FPU) {
-//         int fptag;
-//         fptag = 0;
-//         for(i = 0; i < 8; i++) 
-//             fptag |= ((!env->fptags[i]) << i);
+    if (flags & CPU_DUMP_FPU) {
+        int fptag;
+        fptag = 0;
+        for(i = 0; i < 8; i++) 
+            fptag |= ((!env->fptags[i]) << i);
 
-//         sprintf(temp, "%04x", env->fpuc);
-//         add_reg(&head, (char*)"FCW", temp);
+        sprintf(temp, "%04x", env->fpuc);
+        add_reg(&head, &cur, (char*)"FCW", temp);
 
-//         sprintf(temp, "%04x [ST=%d]", (env->fpus & ~0x3800) | (env->fpstt & 0x7) << 11,
-//                      env->fpstt);
-//         add_reg(&head, (char*)"FSW", temp);
+        sprintf(temp, "%04x [ST=%d]", (env->fpus & ~0x3800) | (env->fpstt & 0x7) << 11,
+                     env->fpstt);
+        add_reg(&head, &cur, (char*)"FSW", temp);
 
-//         sprintf(temp, "%02x", fptag);
-//         add_reg(&head, (char*)"FTW", temp);
+        sprintf(temp, "%02x", fptag);
+        add_reg(&head, &cur, (char*)"FTW", temp);
 
-//         sprintf(temp, "%08x", env->mxcsr);
-//         add_reg(&head, (char*)"MXCSR", temp);
+        sprintf(temp, "%08x", env->mxcsr);
+        add_reg(&head, &cur, (char*)"MXCSR", temp);
         
-//         for(i=0;i<8;i++) 
-//         {
-//             CPU_LDoubleU u;
-//             u.d = env->fpregs[i].d;
-//             char *temp2 = g_malloc0(50);
-//             sprintf(temp, "FPR%d", i);
-//             sprintf(temp2, "%016" PRIx64 " %04x", u.l.lower, u.l.upper);
-//             add_reg(&head, temp, temp2);
-//         }
+        for(i=0;i<8;i++) 
+        {
+            CPU_LDoubleU u;
+            u.d = env->fpregs[i].d;
+            char *temp2 = g_malloc0(50);
+            sprintf(temp, "FPR%d", i);
+            sprintf(temp2, "%016" PRIx64 " %04x", u.l.lower, u.l.upper);
+            add_reg(&head, &cur, temp, temp2);
+        }
 
-//         if (env->hflags & HF_CS64_MASK)
-//             nb = 16;
-//         else
-//             nb = 8;
+        if (env->hflags & HF_CS64_MASK)
+            nb = 16;
+        else
+            nb = 8;
 
-//         for(i=0;i<nb;i++) 
-//         {
-//             char *temp2 = g_malloc0(50);
-//             sprintf(temp, "XMM%02d", i);
-//             sprintf(temp2, "%08x%08x%08x%08x",
-//                          env->xmm_regs[i].ZMM_L(3),
-//                          env->xmm_regs[i].ZMM_L(2),
-//                          env->xmm_regs[i].ZMM_L(1),
-//                          env->xmm_regs[i].ZMM_L(0));
-//             add_reg(&head, temp, temp2);
-//         }
-//     }
+        for(i=0;i<nb;i++) 
+        {
+            char *temp2 = g_malloc0(50);
+            sprintf(temp, "XMM%02d", i);
+            sprintf(temp2, "%08x%08x%08x%08x",
+                         env->xmm_regs[i].ZMM_L(3),
+                         env->xmm_regs[i].ZMM_L(2),
+                         env->xmm_regs[i].ZMM_L(1),
+                         env->xmm_regs[i].ZMM_L(0));
+            add_reg(&head, &cur, temp, temp2);
+        }
+    }
 
     return head;
 }
