@@ -2382,7 +2382,10 @@ CpuReturn *qmp_itc_cpureg(Error **errp)
 
     CPU_FOREACH(cpu)
     {
-        ret = x86_cpu_return_state(cpu, CPU_DUMP_FPU);
+        CPUClass *cc = CPU_GET_CLASS(cpu);
+
+        // ret = x86_cpu_return_state(cpu, CPU_DUMP_FPU);
+        ret = cc->return_state(cpu, 0);
     }
 
     return ret;

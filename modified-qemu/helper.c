@@ -433,67 +433,65 @@ void add_reg(CpuReturn **head, CpuRegList **cur, char* reg_name, char* reg_value
     (*head)->num_vals++;
 }
 
-// static void cpu_x86_return_seg_cache(CPUX86State *env, const char *name, 
-//     struct SegmentCache *sc, CpuReturn** ret)
-// {
-//     char *temp = g_malloc0(100);
-//     int length = 0;
-// #ifdef TARGET_X86_64
-//     if (env->hflags & HF_CS64_MASK) {
-//         length += sprintf(temp + length, "%04x %016" PRIx64 " %08x %08x",
-//                      sc->selector, sc->base, sc->limit,
-//                      sc->flags & 0x00ffff00);
-//     } 
-//     else
-// #endif
-//     {
-//         length += sprintf(temp + length, "%04x %08x %08x %08x", sc->selector,
-//                      (uint32_t)sc->base, sc->limit,
-//                      sc->flags & 0x00ffff00);
-//     }
+static void cpu_x86_return_seg_cache(CPUX86State *env, const char *name, 
+    struct SegmentCache *sc, CpuReturn** ret, CpuRegList **cur)
+{
+    char *temp = g_malloc0(100);
+    int length = 0;
+#ifdef TARGET_X86_64
+    if (env->hflags & HF_CS64_MASK) {
+        length += sprintf(temp + length, "%04x %016" PRIx64 " %08x %08x",
+                     sc->selector, sc->base, sc->limit,
+                     sc->flags & 0x00ffff00);
+    } 
+    else
+#endif
+    {
+        length += sprintf(temp + length, "%04x %08x %08x %08x", sc->selector,
+                     (uint32_t)sc->base, sc->limit,
+                     sc->flags & 0x00ffff00);
+    }
 
-//     if (!(env->hflags & HF_PE_MASK) || !(sc->flags & DESC_P_MASK))
-//         goto done;
+    if (!(env->hflags & HF_PE_MASK) || !(sc->flags & DESC_P_MASK))
+        return;
 
-//     length += sprintf(temp + length, " DPL=%d ", (sc->flags & DESC_DPL_MASK) >> DESC_DPL_SHIFT);
+    length += sprintf(temp + length, " DPL=%d ", (sc->flags & DESC_DPL_MASK) >> DESC_DPL_SHIFT);
 
-//     if (sc->flags & DESC_S_MASK) {
-//         if (sc->flags & DESC_CS_MASK) {
-//             length += sprintf(temp + length, (sc->flags & DESC_L_MASK) ? "CS64" :
-//                          ((sc->flags & DESC_B_MASK) ? "CS32" : "CS16"));
-//             length += sprintf(temp + length, " [%c%c%c]", 
-//                         (sc->flags & DESC_C_MASK) ? 'C' : '-',
-//                         (sc->flags & DESC_R_MASK) ? 'R' : '-', 
-//                         (sc->flags & DESC_A_MASK) ? 'A' : '-');
-//         } else {
-//             length += sprintf(temp + length, (sc->flags & DESC_B_MASK || env->hflags & HF_LMA_MASK)
-//                          ? "DS  " : "DS16");
-//             length += sprintf(temp + length, " [%c%c%c]", 
-//                         (sc->flags & DESC_E_MASK) ? 'E' : '-',
-//                         (sc->flags & DESC_W_MASK) ? 'W' : '-', 
-//                         (sc->flags & DESC_A_MASK) ? 'A' : '-');
-//         }
-//     } else {
-//         static const char *sys_type_name[2][16] = {
-//             { /* 32 bit mode */
-//                 "Reserved", "TSS16-avl", "LDT", "TSS16-busy", "CallGate16", "TaskGate", 
-//                 "IntGate16", "TrapGate16", "Reserved", "TSS32-avl", "Reserved",
-//                 "TSS32-busy", "CallGate32", "Reserved", "IntGate32", "TrapGate32"
-//             },
-//             { /* 64 bit mode */
-//                 "<hiword>", "Reserved", "LDT", "Reserved", "Reserved", "Reserved", 
-//                 "Reserved", "Reserved", "Reserved", "TSS64-avl", "Reserved", 
-//                 "TSS64-busy", "CallGate64", "Reserved", "IntGate64", "TrapGate64"
-//             }
-//         };
-//         length += sprintf(temp + length, "%s",
-//                      sys_type_name[(env->hflags & HF_LMA_MASK) ? 1 : 0]
-//                      [(sc->flags & DESC_TYPE_MASK) >> DESC_TYPE_SHIFT]);
-//     }
-    // add_reg(&ret, (char*)name, temp);
-// done:
-//     return;
-// }
+    if (sc->flags & DESC_S_MASK) {
+        if (sc->flags & DESC_CS_MASK) {
+            length += sprintf(temp + length, (sc->flags & DESC_L_MASK) ? "CS64" :
+                         ((sc->flags & DESC_B_MASK) ? "CS32" : "CS16"));
+            length += sprintf(temp + length, " [%c%c%c]", 
+                        (sc->flags & DESC_C_MASK) ? 'C' : '-',
+                        (sc->flags & DESC_R_MASK) ? 'R' : '-', 
+                        (sc->flags & DESC_A_MASK) ? 'A' : '-');
+        } else {
+            length += sprintf(temp + length, (sc->flags & DESC_B_MASK || env->hflags & HF_LMA_MASK)
+                         ? "DS  " : "DS16");
+            length += sprintf(temp + length, " [%c%c%c]", 
+                        (sc->flags & DESC_E_MASK) ? 'E' : '-',
+                        (sc->flags & DESC_W_MASK) ? 'W' : '-', 
+                        (sc->flags & DESC_A_MASK) ? 'A' : '-');
+        }
+    } else {
+        static const char *sys_type_name[2][16] = {
+            { /* 32 bit mode */
+                "Reserved", "TSS16-avl", "LDT", "TSS16-busy", "CallGate16", "TaskGate", 
+                "IntGate16", "TrapGate16", "Reserved", "TSS32-avl", "Reserved",
+                "TSS32-busy", "CallGate32", "Reserved", "IntGate32", "TrapGate32"
+            },
+            { /* 64 bit mode */
+                "<hiword>", "Reserved", "LDT", "Reserved", "Reserved", "Reserved", 
+                "Reserved", "Reserved", "Reserved", "TSS64-avl", "Reserved", 
+                "TSS64-busy", "CallGate64", "Reserved", "IntGate64", "TrapGate64"
+            }
+        };
+        length += sprintf(temp + length, "%s",
+                     sys_type_name[(env->hflags & HF_LMA_MASK) ? 1 : 0]
+                     [(sc->flags & DESC_TYPE_MASK) >> DESC_TYPE_SHIFT]);
+    }
+    add_reg(ret, cur, (char*)name, temp);
+}
 
 CpuReturn* x86_cpu_return_state(CPUState *cs, int flags)
 {
@@ -507,8 +505,7 @@ CpuReturn* x86_cpu_return_state(CPUState *cs, int flags)
     int eflags;
     int i;
     int nb;
-    // char cc_op_name[32];
-    // static const char *seg_name[6] = { "ES", "CS", "SS", "DS", "FS", "GS" };
+    static const char *seg_name[6] = { "ES", "CS", "SS", "DS", "FS", "GS" };
     char *temp = g_malloc0(50);
 
     eflags = cpu_compute_eflags(env);
@@ -592,11 +589,11 @@ CpuReturn* x86_cpu_return_state(CPUState *cs, int flags)
         add_reg(&head, &cur, (char*)"HLT", temp);
     }
 
-    // for(i = 0; i < 6; i++) 
-    //     cpu_x86_return_seg_cache(env, seg_name[i], &env->segs[i], &head);
+    for(i = 0; i < 6; i++) 
+        cpu_x86_return_seg_cache(env, seg_name[i], &env->segs[i], &head, &cur);
     
-//     cpu_x86_return_seg_cache(env, "LDT", &env->ldt, &head);
-//     cpu_x86_return_seg_cache(env, "TR", &env->tr, &head);
+    cpu_x86_return_seg_cache(env, "LDT", &env->ldt, &head, &cur);
+    cpu_x86_return_seg_cache(env, "TR", &env->tr, &head, &cur);
 
 #ifdef TARGET_X86_64
     if (env->hflags & HF_LMA_MASK) {
