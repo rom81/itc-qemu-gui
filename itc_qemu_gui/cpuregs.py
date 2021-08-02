@@ -38,9 +38,11 @@ class CpuRegistersWindow(QWidget):
         # refresh timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update)
+        self.qmp.cpuRegInfo.connect(self.on_cpuRegInfo)
+        ret = self.qmp.command("itc-cpureg")
         # init gui
         self.register_widgets = {}
-        self.init_ui()
+        self.ui_inited = False
 
     def init_ui(self):
         """init user interface"""
@@ -54,22 +56,28 @@ class CpuRegistersWindow(QWidget):
         self.on_autorefresh(True)
         self.ui.action_options_textview.triggered.connect(self.on_textview)
         # dynamically populate register widgets
-        self.get_info()
         self.ui.register_widgets = {}
         grid = QGridLayout()
         self.ui.page_regs.setLayout(grid)
+
         # set up register/value grid
-        regs = list(self.registers.keys())
-        vals = list(self.registers.values())
+        regs = []
+        vals = []
+        for reg in self.registers:
+            regs.append(reg['reg'])
+            vals.append(reg['val'])
+
         k = 0
         for i in range(0, 3):
             for j in range(0, math.ceil(len(self.registers)/3)):
                 horizontalLayout = QHBoxLayout()
                 horizontalLayout.addWidget(QLabel(regs[k], self))
+
                 le_val = QLineEdit(str(vals[k]), self)
                 le_val.setReadOnly(True)
                 le_val.setCursorPosition(0)
                 le_val.setFont(QFont('Monospace'))
+
                 horizontalLayout.addWidget(le_val)
                 grid.addLayout(horizontalLayout, j, i)
                 self.ui.register_widgets.setdefault(regs[k], le_val)
@@ -102,18 +110,35 @@ class CpuRegistersWindow(QWidget):
         else:
             self.ui.stack.setCurrentIndex(0)
 
+    def on_cpuRegInfo(self, data):
+        """populate registers dictionary"""
+        self.registers = json.loads(str(data['vals']).replace("\'", "\""))
+
+        """populate self.info for text view"""
+        self.info = ""
+        for reg in self.registers:
+            self.info += reg['reg'] + ": " + reg['val']
+            self.info += "\n"
+
+        if not self.ui_inited:
+            self.init_ui()
+            self.ui_inited = True
+
     def update(self):
-        """update gui info"""
-        # get current info
-        self.get_info()
+        # """update gui info"""
+        self.qmp.command("itc-cpureg")
+
         # update plain text view
         self.ui.out_cpuregs.setPlainText(self.info)
+
         # update reg view if visible
         i = 0
         if self.ui.stack.currentIndex() == 0:
             for reg, widgets in self.ui.register_widgets.items():
                 old_value = widgets.text()
-                new_value = self.registers[reg]
+        
+                register = next(item for item in self.registers if item["reg"] == reg)
+                new_value = register['val']
                 i = i+1
                 widgets.setText(new_value)
                 widgets.setCursorPosition(0)
@@ -123,51 +148,6 @@ class CpuRegistersWindow(QWidget):
                     else:
                         widgets.setStyleSheet('')
                 widgets.setCursorPosition(0)
-
-    def get_info(self):
-        """get cpu register info"""
-        # execute hmp command over qmp and parse cpu registers
-        self.info = self.qmp.hmp_command('info registers')['return']
-        self.registers = self.parse_info()
-
-    def parse_info(self):
-        """parse register info from hmp plain text"""
-        registers = {}
-        values = []
-
-        tokens = self.info.split("\r\n")
-        for i in range(0, 3):
-            grp = tokens[i].split()
-            for tok in grp:
-                if "=" in tok and tok.split("=")[0] and tok.split("=")[1]:
-                    chars = tok.split("=")
-                    registers[chars[0]] = chars[1]
-        for i in range(3, 9):
-            grp = tokens[i].split()
-            registers[grp[0]] = grp[1].replace("=","") + grp[2] + grp[3] + grp[4] + grp[5] + grp[6]
-        grp = tokens[9].split()
-        registers[grp[0].split("=")[0]] = grp[0].split("=")[1] + grp[1] + grp[2] + grp[3] + grp[4] + grp[5]
-        grp = tokens[10].split()
-        registers[grp[0]] = grp[1].split("=")[1] + grp[2] + grp[3] + grp[4] + grp[5] + grp[6]
-        for i in range(11, 13):
-            grp = tokens[i].split()
-            registers[grp[0].split("=")[0]] = grp[1] + grp[2]
-        for i in range(13, 18):
-            grp = tokens[i].split()
-            for tok in grp:
-                if "=" in tok and tok.split("=")[0] and tok.split("=")[1]:
-                    chars = tok.split("=")
-                    registers[chars[0].strip('[')] = chars[1].strip(']')
-        for i in range(18, 22):
-            grp = tokens[i].split()
-            registers[grp[0].split("=")[0]] = grp[0].split("=")[1] + grp[1]
-            registers[grp[2].split("=")[0]] = grp[2].split("=")[1] + grp[3]
-        for i in range(22, 26):
-            grp = tokens[i].split()
-            registers[grp[0].split("=")[0]] = grp[0].split("=")[1]
-            registers[grp[1].split("=")[0]] = grp[1].split("=")[1]
-
-        return registers
 
     def closeEvent(self, event):
         """overridden close event"""

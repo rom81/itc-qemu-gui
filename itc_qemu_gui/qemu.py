@@ -220,4 +220,3 @@ class TimeThread(threading.Thread):
                 time.sleep(.5)
                 args = {'clock': 'virtual'}
                 self.qmp.command('itc-sim-time', args=args)
-                self.qmp.command('itc-cpureg')

@@ -26,6 +26,7 @@ class QMP(threading.Thread, QtCore.QObject):
     memoryMap = QtCore.Signal(list)
     timeUpdate = QtCore.Signal(tuple)
     memSizeInfo = QtCore.Signal(int)
+    cpuRegInfo = QtCore.Signal(tuple)
     connectionChange = QtCore.Signal(bool)
     newData = QtCore.Signal(dict)
     timeMetric = QtCore.Signal(list)
@@ -58,6 +59,7 @@ class QMP(threading.Thread, QtCore.QObject):
         self._p_mem = None
         self._time = None
         self._mem_size = None
+        self._cpuregs = None
         self._connected = False
         self._newdata = None
         self._metric = None
@@ -90,7 +92,9 @@ class QMP(threading.Thread, QtCore.QObject):
             elif 'return' in data and 'time_ns' in data['return']:
                 self.time = data['return']['time_ns']
             elif 'return' in data and 'base-memory' in data['return']:
-                self.mem_size = data['return']['base-memory']        
+                self.mem_size = data['return']['base-memory']       
+            elif 'return' in data and 'num_vals' in data['return']:
+                self.cpuregs = data['return']
             else:
                 self.extraData.emit(data)
             self.newdata = data           
@@ -101,7 +105,7 @@ class QMP(threading.Thread, QtCore.QObject):
             while self.connected:
                 try:
                     data = self.sock.recv(4096)
-                    print(data)
+                    # print(data)
                 except OSError:
                     return ''
                 total_data.extend(data)
@@ -253,6 +257,15 @@ class QMP(threading.Thread, QtCore.QObject):
     def mem_size(self, value):
         self._mem_size = value
         self.memSizeInfo.emit(value)
+
+    @property
+    def cpuregs(self):
+        return self._cpuregs
+
+    @cpuregs.setter
+    def cpuregs(self, value):
+        self._cpuregs = value
+        self.cpuRegInfo.emit(value)
 
 
     @property
