@@ -137,7 +137,11 @@ class CpuRegistersWindow(QWidget):
             for reg, widgets in self.ui.register_widgets.items():
                 old_value = widgets.text()
         
-                register = next(item for item in self.registers if item["reg"] == reg)
+                # register = next(item for item in self.registers if item["reg"] == reg)
+                register = None 
+                for item in self.registers:
+                    if item["reg"] == reg:
+                        register = item
                 new_value = register['val']
                 i = i+1
                 widgets.setText(new_value)

@@ -233,11 +233,13 @@ void cpu_dump_state(CPUState *cpu, FILE *f, int flags)
 CpuReturn* cpu_return_state(CPUState *cpu, int flags)
 {
     CPUClass *cc = CPU_GET_CLASS(cpu);
+    CpuReturn* ret = NULL;
 
     if (cc->return_state) {
         cpu_synchronize_state(cpu);
-        cc->dump_state(cpu, f, flags);
+        ret = cc->return_state(cpu, flags);
     }
+    return ret;
 }
 
 void cpu_dump_statistics(CPUState *cpu, int flags)

@@ -11,6 +11,7 @@ locations=(
 	["./modified-qemu/helper.c"]="../qemu/target/i386/helper.c"
 	["./modified-qemu/cpu.h"]="../qemu/target/i386/cpu.h"
 	["./modified-qemu/include/hw/core/cpu.h"]="../qemu/include/hw/core/cpu.h"
+	["./modified-qemu/hw/core/cpu.c"]="../qemu/hw/core/cpu.c"
 )
 
 
