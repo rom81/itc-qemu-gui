@@ -1,6 +1,7 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
+\usepackage{vhistory}
 \usepackage[margin=1in]{geometry}
 \usepackage{indentfirst}
 \usepackage{hyperref}
@@ -11,7 +12,7 @@
     urlcolor=cyan,
 }
 % gives version of GUI to make further editions of this document easier to make
-\newcommand{\version}{v.0.1}
+\newcommand{\version}{v.0.2}
 \newcommand{\code}[1]{\texttt{#1}}
 
 \title{ITC-QEMU-GUI \version{} Documentation}
@@ -22,8 +23,16 @@
 
 \maketitle
 \tableofcontents
-\newpage
 
+
+
+% Start of the revision history table
+\begin{versionhistory}
+  \vhEntry{v.0.1}{July 8, 2020}{Ian Peitzsch|Michael Hoefler}{Created}
+  \vhEntry{v.0.2}{August 3, 2021}{Rachel Misbin}{Revised}
+\end{versionhistory}
+
+\newpage
 
 \section{Introduction}
 
@@ -112,12 +121,6 @@ The CPU register view is used to view simulation CPU registers and their content
 \end{center}
 
 The register view offers options to toggle auto-refresh and to save the registers to a separate file. Finally, text mode can be toggled through the Options menu, and offers a less visually pleasing (but more organized and compact) view of the registers. \newline
-
-\textbf{Known Limitation:}
-\begin{itemize}
-    \item Currently, the register view works by using the HMP command \code{info registers} to grab the text version of the CPU register values, and regex is used to parse the text. This regex is not always perfect. 
-    \item In the future, a custom QMP command could be written to return a JSON object with key-value pairs, but it seems that a separate version of this command would need to be written for each separate CPU register.
-\end{itemize}
 
 \subsubsection{Searching Events}
 In the top left of the trace events screen you should see a search bar. You can use this search bar to search for trace events. To the right of the search bar you should see an up arrow and a down arrow. The up arrow is used to collapse all nodes in the tree of trace events, and the down arrow is used to expand all of the nodes. 
@@ -260,4 +263,18 @@ The \code{itc-time-metric} command gives an array containing the current host ti
 \textbf{Example:}\\
 \code{->\{"execute": "itc-time-metric" \}}\\
 \code{<-\{"return": \{ \{"time\_ns": 1040040609\}, \{"time\_ns": 1594065163483704\} \} \}}
+
+
+\subsection{\code{itc-cpureg}}
+The \code{itc-cpureg} command returns all CPU register names and values along with the total CPU register count. In v.0.1 of the GUI, the CPU Register View used a the HMP command \code{info registers} but this necessitated complex parsing in the GUI (since HMP commands are returned a strings, rather than as JSON objects  as in QMP commands) which was very fragile and broke with QEMU updates. It was suggested that a custom QMP command might eliminate this issue, so the \code{itc-cpureg} command was developed. Since the \code{info registers} command used a function which dumped the CPU state to a file, it was copied then modified to create a function to return the CPU state as a JSON object rather than writing it to a file. 
+
+It is important to understand that the \code{itc-cpureg} command is currently only implemented for i386 systems; since CPU registers vary across architectures, there is no one-size-fits-all solution for all architectures. To extend this command to work for other architectures, a function  \code{[ARCH]\_cpu\_return\_state} needs to be written and connected to the CPUClass function \code{return\_state}. This function will look very similar to that architecture's \code{[ARCH]\_cpu\_dump\_state} function, except it will return the CPU state instead of writing it to a file. Currently, \code{x86\_cpu\_return\_state} is the only example to follow in writing this function. Once this function is written and connected to \code{CPUClass}'s \code{return\_state} function, the \code{itc-cpureg} command will work for that architecture.
+
+
+\paragraph{Arguments} \code{itc-cpureg} does not take any arguments.
+
+\paragraph{Return} \code{itc-cpureg} returns an array containing a \code{CpuReturn} object and an integer representing the total number of registers descriped in the array.
+
+ in the form of a \code{CpuReturn} object.
+
 \end{document}
