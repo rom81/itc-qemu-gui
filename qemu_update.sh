@@ -22,6 +22,6 @@ for modified in "${!locations[@]}"; do
 done
 
 cd ../qemu/
-./configure --target-list=i386-softmmu
+./configure --target-list=i386-softmmu --enable-debug --disable-strip
 make
 

@@ -1,44 +1,19 @@
-# Copyright (C) 2009 - 2020 National Aeronautics and Space Administration. All Foreign Rights are Reserved to the U.S. Government.
-# 
-# This software is provided "as is" without any warranty of any kind, either expressed, implied, or statutory, including, but not
-# limited to, any warranty that the software will conform to specifications, any implied warranties of merchantability, fitness
-# for a particular purpose, and freedom from infringement, and any warranty that the documentation will conform to the program, or
-# any warranty that the software will be error free.
-# 
-# In no event shall NASA be liable for any damages, including, but not limited to direct, indirect, special or consequential damages,
-# arising out of, resulting from, or in any way connected with the software or its documentation, whether or not based upon warranty,
-# contract, tort or otherwise, and whether or not loss was sustained from, or arose out of the results of, or use of, the software,
-# documentation or services provided hereunder.
-# 
-# ITC Team
-# NASA IV&V
-# ivv-itc@lists.nasa.gov
-
 from pygdbmi.gdbcontroller import GdbController
 from PySide2.QtWidgets import QWidget, QLineEdit, QHBoxLayout, QPushButton, QVBoxLayout, QTextEdit
-from PySide2.QtGui import QFont, QTextCharFormat, QTextCursor, QIcon
+from PySide2.QtGui import QFont
 from pprint import pprint
-from PySide2.QtCore import Qt
-import re
-from itc_qemu_gui.constants import constants
-
 class AssemblyWindow(QWidget):
     def __init__(self, qmp, parent=None):
         super().__init__(parent)
-        # self.gdb = None
+        self.gdb = None
         self.qmp = qmp
 
-        # self.connected = False
+        self.running = qmp.running
+        self.qmp.stateChanged.connect(self.set_running)
 
-        self.instr = re.compile(r"(^(0x[0-9a-f]+:)((\s+[0-9a-f]{2})+)\s+(.+?)$)+(?m)")
-        self.addr = re.compile(r"^\s*-?(0x)?[0-9a-f]+\s*$")
-        self.baseAddress = -1
-        self.maxAddress = -1
+        self.connected = False
 
         self.initui()
-
-        self.set_running(self.qmp.running)
-        self.qmp.stateChanged.connect(self.set_running)
 
         self.show()
 
@@ -47,162 +22,119 @@ class AssemblyWindow(QWidget):
         main_box = QVBoxLayout()
         button_box = QHBoxLayout()
 
-        # self.host = QLineEdit()
-        # connect_box.addWidget(self.host)
+        self.host = QLineEdit()
+        self.host.setPlaceholderText("GDB Hostname")
+        connect_box.addWidget(self.host)
 
-        # self.port = QLineEdit()
-        # connect_box.addWidget(self.port)
 
-        # self.connect = QPushButton("Connect")
-        # self.connect.setCheckable(True)
-        # self.connect.clicked.connect(lambda: self.connect_gdb(self.host.text(), self.port.text()))
-        # connect_box.addWidget(self.connect)
+        self.port = QLineEdit()
+        self.port.setPlaceholderText("GDB Port")
+        connect_box.addWidget(self.port)
 
-        # main_box.addLayout(connect_box)
+        self.connect = QPushButton("Connect")
+        self.connect.setCheckable(True)
+        self.connect.clicked.connect(lambda: self.connect_gdb(self.host.text(), self.port.text()))
+        connect_box.addWidget(self.connect)
 
-        # self.step = QPushButton("Step")
-        # self.step.clicked.connect(self.step_gdb)
-        # button_box.addWidget(self.step)
+        main_box.addLayout(connect_box)
 
-        # self.next = QPushButton("Next")
-        # self.next.clicked.connect(self.next_gdb)
-        # button_box.addWidget(self.next)
+        self.step = QPushButton("Step")
+        self.step.clicked.connect(self.step_gdb)
+        button_box.addWidget(self.step)
 
-        # main_box.addLayout(button_box)
+        self.next = QPushButton("Next")
+        self.next.clicked.connect(self.next_gdb)
+        button_box.addWidget(self.next)
+
+        main_box.addLayout(button_box)
 
         self.box = QTextEdit()
         self.box.setReadOnly(True)
         self.box.setLineWrapMode(QTextEdit.NoWrap)
         self.box.setCurrentFont(QFont('Courier New'))
-
+        self.box.setGeometry(100,100,250,500)
         main_box.addWidget(self.box)
 
         self.setLayout(main_box)
-        self.setGeometry(100,100,650,300)
 
-    # def connect_gdb(self, host, port):
-    #     self.qmp.command('stop')
-    #     if host == '' or port == '':
-    #         host = 'localhost'
-    #         port = 1234
-    #     elif not port.isnumeric():
-    #         return
+    def connect_gdb(self, host, port):
+        self.qmp.command('stop')
+        if host == '' or port == '':
+            host = 'localhost'
+            port = 1234
+            self.host.setText('localhost')
+            self.port.setText('1234')
+        elif not port.isnumeric():
+            return
 
-    #     if self.gdb and self.connected:
-    #         self.gdb.exit()
-    #         self.connected = False
-    #     elif not self.connected:
-    #         self.gdb = GdbController(gdb_args=['--interpreter=mi'])
-    #         resp = self.gdb.write(f'target remote {host}:{port}')
-    #         for r in resp:
-    #             if r['type'] == 'result' and r['message'] == 'error':
-    #                 self.box.clear()
-    #                 self.box.setText(f'Could not connect to {host}:{port}.')
-    #                 self.connect.setChecked(False)
-    #                 self.connected = False
-    #                 return
+        if self.gdb and self.connected:
+            self.gdb.exit()
+            self.connected = False
+        elif not self.connected:
+            self.gdb = GdbController(gdb_args=['--interpreter=mi3'])
+            other_resp = self.gdb.write(f'set may-interrupt off')
+            print("other_resp: ", other_resp)
+            resp = self.gdb.write(f'target remote {host}:{port}')
+            print(resp)
+            for r in resp:
+                if r['type'] == 'result' and r['message'] == 'error':
+                    self.box.clear()
+                    self.box.setText(f'Could not connect to {host}:{port}.')
+                    self.connect.setChecked(False)
+                    self.connected = False
+                    return
 
-    #         self.display_instrs(self.gdb.write('display/30i $pc'))
-    #         self.connected = True
+            self.display_instrs(self.gdb.write('display/30i $pc'))
+            self.connected = True
 
     def set_running(self, value):
-        self.running = value
-        if not self.running:
-            data = None
-            while True:
-                data = self.qmp.hmp_command('print ' + constants['pc'])
-                if 'return' in data:
-                        data = data['return']
-                        if not (data is dict) and self.addr.match(str(data)):
-                            break
-            pc = int(data, 0)
-            pc = pc & 0xffffffff
-            if pc >= self.baseAddress and pc <= self.maxAddress:
-                self.clear_highlight()
-                self.highlight(pc)
-            else:
-                while True:
-                    data = self.qmp.hmp_command('x/30i ' + constants['pc'])
-                    if 'return' in data:
-                        data = data['return']
-                        if self.instr.match(str(data)):
-                            break
-                try:
-                    self.display_instrs(data, pc)
-                except:
-                    self.set_running(False)
+        self.running = value            
+    
+    def step_gdb(self):
+        print("start of step_gdb: self.qmp.running = ", self.qmp.running)
 
-    # def step_gdb(self):
-    #     self.step.clicked.disconnect(self.step_gdb)
-    #     self.qmp.command('stop')
-    #     resp = self.gdb.write('si')
-    #     self.display_instrs(resp)
-    #     self.step.clicked.connect(self.step_gdb)
+        # Execute step if gdb is connected
+        if self.gdb:
+            # self.step.clicked.disconnect(self.step_gdb)
+            # print("mid 1 of step_gdb: self.qmp.running = ", self.qmp.running)
+            
+            # self.qmp.command('stop')
+            print("mid 2 of step_gdb: self.qmp.running = ", self.qmp.running)
 
-    # def next_gdb(self):
-    #     self.next.clicked.disconnect(self.next_gdb)
-    #     self.qmp.command('stop')
-    #     resp = self.gdb.write('ni')
-    #     self.display_instrs(resp)
-    #     self.next.clicked.connect(self.next_gdb)
+            resp = self.gdb.write('si')
+            # print("si result: ", resp, "\n\n")
 
-    def clear_highlight(self):
-        fmt = QTextCharFormat()
-        fmt.setFont('Courier New')
+            print("mid 3 of step_gdb: self.qmp.running = ", self.qmp.running)
 
-        cur = self.box.textCursor()
-        cur.select(QTextCursor.Document)
-        cur.setCharFormat(fmt)
-        self.box.setTextCursor(cur)
+            self.display_instrs(resp)
+            print("mid 4 of step_gdb: self.qmp.running = ", self.qmp.running)
+
+            # self.step.clicked.connect(self.step_gdb)
+        
+        print("end of step_gdb: self.qmp.running = ", self.qmp.running)
 
 
-    def highlight(self, addr):
-        fmt = QTextCharFormat()
-        fmt.setBackground(Qt.cyan)
-        fmt.setFont('Courier New')
+    def next_gdb(self):
+        print("start of next_gdb: self.qmp.running = ", self.qmp.running)
 
-        cur = self.box.textCursor()
+        # Execute step if gdb is connected
+        if self.gdb:
+            self.next.clicked.disconnect(self.next_gdb)
+            self.qmp.command('stop')
+            resp = self.gdb.write('ni')
+            # print("ni result: ", resp, "\n\n")
+            self.display_instrs(resp)
+            self.next.clicked.connect(self.next_gdb)
 
-        text = self.box.toPlainText()
-        count = 0
-        for line in text.split('\n'):
-            if len(line) > 0:
-                line_addr = line.split()[0]
-                n = (len(line_addr[2:-1]) * 4)
-                mask = (2 ** n) - 1
-                if int(line_addr[:-1],16) == (addr & mask):
-                    break
-                count += 1
-        block = self.box.document().findBlockByLineNumber(count)
-        cur.setPosition(block.position())
+        print("end of next_gdb: self.qmp.running = ", self.qmp.running)
+        
 
-        cur.select(QTextCursor.LineUnderCursor)
-
-        cur.setCharFormat(fmt)
-
-        self.box.setTextCursor(cur)
-
-    def display_instrs(self, resp, addr):
-        # asm = []
-        # for r in resp:
-        #     if r['type'] == 'console':
-        #         asm.append(r['payload'])
-        # asm = asm[1:31]
-        # self.box.clear()
-        # self.box.setText(((''.join(asm).replace('\\t', '\t')).replace('\\n', '\n')).replace('=>', '  '))
-
+    def display_instrs(self, resp):
+        asm = []
+        for r in resp:
+            if r['type'] == 'console':
+                asm.append(r['payload'])
+        asm = asm[1:31]
+        # print(asm)
         self.box.clear()
-        self.clear_highlight()
-
-        self.box.setText(resp)
-
-        last_line = self.box.toPlainText().split('\n')[-2].split()
-        if len(last_line) > 0:
-            address = int(last_line[0][:-1], 16)
-            self.maxAddress = address
-        first_line = self.box.toPlainText().split('\n')[0].split()
-        if len(first_line) > 0:
-            address = int(first_line[0][:-1], 16)
-            self.baseAddress = address
-        self.highlight(addr)
-
+        self.box.setText((''.join(asm).replace('\\t', '\t')).replace('\\n', '\n'))

@@ -91,6 +91,7 @@ void qmp_quit(Error **errp)
 
 void qmp_stop(Error **errp)
 {
+    fprintf(stderr, "\t\tqmp_stop called\n");
     /* if there is a dump in background, we should wait until the dump
      * finished */
     if (dump_in_progress()) {
@@ -127,6 +128,7 @@ void qmp_x_exit_preconfig(Error **errp)
 
 void qmp_cont(Error **errp)
 {
+    fprintf(stderr, "\t\tentered qmp_cont\n");
     BlockBackend *blk;
     BlockJob *job;
     Error *local_err = NULL;

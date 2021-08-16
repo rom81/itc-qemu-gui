@@ -72,11 +72,14 @@ class QMP(threading.Thread, QtCore.QObject):
             if data == 'lost_conn':
                 self.running = None
                 break
+            print("data:\n", data)
             # Handle Async QMP Messages 
             if 'timestamp' in data:
                 if data['event'] == 'STOP':
+                    print("received command to stop")
                     self.running = False
                 elif data['event'] == 'RESUME': 
+                    print("received command to resume")
                     self.running = True
                 elif data['event'] == 'SHUTDOWN':
                     self.sock_disconnect()
@@ -109,6 +112,7 @@ class QMP(threading.Thread, QtCore.QObject):
                 except OSError:
                     return ''
                 total_data.extend(data)
+                print("data[-3]: ", data[-3], " data[-2]: ", data[-2], " data[-1]: ", data[-1])
                 if len(data) < 4095 and data[-3] == 125 and data[-2] == 13 and data[-1] == 10:
                     break
             data = total_data.decode().split('\n')[0]

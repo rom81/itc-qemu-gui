@@ -123,11 +123,13 @@ class QemuWindow(QMainWindow):
         dialog.exec_()
 
     def cont_sim(self):
+        print("sending cont command")
         self.ui.btn_simstate.setText('■')
         self.ui.out_simstate.setText('<font color="green">Running</font>')
         self.qmp.command('cont')
 
     def stop_sim(self):
+        print("sending stop command")
         self.ui.btn_simstate.setText('▶')
         self.ui.out_simstate.setText('<font color="red">Paused</font>')
         self.qmp.command('stop')
