@@ -37,7 +37,7 @@
 \section{Introduction}
 
 \subsection{Purpose}
-The purpose of this document is to explain the installation process, as well as the use and functionality of ITC QEMU GUI \version{}.
+The purpose of this document is to explain the installation process, as well as the use and functionality of ITC QEMU GUI \version{}. This codebase can be publicly accessed at \url{https://github.com/rom81/itc-qemu-gui/tree/master}.
 
 \subsection{Installation}
 Before starting to install the GUI, make sure you have the following dependencies installed on your machine. These are all available to install from most Linux package managers.
@@ -108,9 +108,9 @@ The memory tree view displays the different regions of memory and their address 
 
 The assembly view shows the current assembly instruction. To open the assembly view navigate to Tools $\rightarrow$ Assembly View. The display updates when the GUI receives a stop signal from QEMU, allowing it to work in tandem with GDB using the \code{si} or \code{ni} commands.\par
 \textbf{Note:} To properly use this view, the architecture's instruction pointer register must be set in \code{package/constants.py}. By default, \code{\$eip} is used.\par
-\textbf{Known Bugs:}
+\textbf{Areas for Improvement:}
 \begin{itemize}
-    \item \code{si} and \code{ni} do not always give a stop signal when they finish stepping. Thus, sometimes the display doesn't properly update. This functionality is currently commented out.
+    \item A previous version of tool explored using QEMU's existing gdbstub functionality to perform be able to step through assembly, rather than just using an HMP command (as is done in the current version of this software). The current version of this software does not include this functionality because it did not work reliably, however, if this functionality is desired (despite its flaws), an experimental version is located under the branch \code{gdb-fixes-in-progress}. In short, the bug preventing this functionality from existing in the main version of this GUI is because the \code{si} and \code{ni} do not always give a stop signal when they finish stepping. Thus, sometimes the display doesn't properly update. This functionality is currently commented out in the main version.
 \end{itemize}
 
 \subsection{CPU Register View}
@@ -180,8 +180,6 @@ The \code{get-pmem} command requests the contents of a part of physical memory.
         \subitem The number of bytes of memory being requested.
     \item \code{hash: int64} 
         \subitem A unique identifier.
-    \item \code{grouping: int} 
-        \subitem Specifies how many bytes each value in the return should be. Valid values are 1, 2, 4, and 8. The default value is 1.
 \end{itemize}   
         
 \paragraph{Return}
@@ -273,8 +271,17 @@ It is important to understand that the \code{itc-cpureg} command is currently on
 
 \paragraph{Arguments} \code{itc-cpureg} does not take any arguments.
 
-\paragraph{Return} \code{itc-cpureg} returns an array containing a \code{CpuReturn} object and an integer representing the total number of registers descriped in the array.
+\paragraph{Return} \code{itc-cpureg} returns an array containing a \code{CpuReturn} object and an integer representing the total number of registers described in the array.
+ 
+ 
+\section{Future Work as of v.0.2}
 
- in the form of a \code{CpuReturn} object.
+In inspecting an upgrading this software from v.0.1 to v.0.2, several bug fixes and improvements were identified and made, however, some work remains to further improve this application. This includes:
+
+\begin{itemize}
+    \item The version of the Assembly View which uses GDB (described in the section on the Assembly View) could be debugged to enable stepping.
+    \item In the QMP Wrapper (\code{qmpwrapper.py}), socket communications with QEMU could be made more robust by replacing the check for termination characters at the end of received messages with a full-featured messaging framework to ensure complete and reliable reception of packets from QEMU.
+    \item A known race condition around accessing the window's scroll bar exists in the Memory Dump View. Its impact has been reduced by tightening the window of access to this variable, therefore tightening the critical section but this race condition could still theoretically occur. A more thorough investigation of the state of this race condition and potentially a refactor of \code{memdump.py} would solve this.
+\end{itemize} 
 
 \end{document}

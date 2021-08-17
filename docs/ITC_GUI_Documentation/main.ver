@@ -1,0 +1,14 @@
+\begin {longtable}{@{}ll>{\hsize =\vhAuthorColWidth }X>{\hsize =\vhChangeColWidth }X@{}}
+\textbf {\vhversionname }
+ & \textbf {\vhdatename }
+ & \textbf {\vhauthorname }
+ & \textbf {\vhchangename }\\[1ex]
+v.0.1
+ & July 8, 2020
+ & \listset {Ian Peitzsch|Michael Hoefler}
+ & Created\\
+v.0.2
+ & August 3, 2021
+ & \listset {Rachel Misbin}
+ & Revised\\
+\end {longtable}

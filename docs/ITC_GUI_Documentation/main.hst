@@ -1,0 +1,3 @@
+\def \vhCurrentVersion {v.0.2}
+\def \vhCurrentDate {August 3, 2021}
+\newsetsimple \vhAllAuthorsSet {Ian Peitzsch|Michael Hoefler|Rachel Misbin}
