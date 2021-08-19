@@ -11,10 +11,8 @@
 \contentsline {subsection}{\numberline {2.2}Memory Tree View}{4}{subsection.2.2}%
 \contentsline {subsection}{\numberline {2.3}Assembly View}{5}{subsection.2.3}%
 \contentsline {subsection}{\numberline {2.4}CPU Register View}{5}{subsection.2.4}%
-\contentsline {subsubsection}{\numberline {2.4.1}Searching Events}{6}{subsubsection.2.4.1}%
-\contentsline {subsubsection}{\numberline {2.4.2}Viewing and Saving Output}{7}{subsubsection.2.4.2}%
-\contentsline {subsection}{\numberline {2.5}Logging View}{7}{subsection.2.5}%
-\contentsline {subsection}{\numberline {2.6}Time Multiplier Graph}{8}{subsection.2.6}%
+\contentsline {subsection}{\numberline {2.5}Logging View}{6}{subsection.2.5}%
+\contentsline {subsection}{\numberline {2.6}Timing View}{8}{subsection.2.6}%
 \contentsline {subsection}{\numberline {2.7}Miscellaneous}{9}{subsection.2.7}%
 \contentsline {subsubsection}{\numberline {2.7.1}Dark Mode}{9}{subsubsection.2.7.1}%
 \contentsline {subsubsection}{\numberline {2.7.2}Plugin Support}{9}{subsubsection.2.7.2}%
@@ -38,4 +36,4 @@
 \contentsline {subsection}{\numberline {3.5}\texttt {itc-cpureg}}{12}{subsection.3.5}%
 \contentsline {paragraph}{Arguments}{12}{section*.15}%
 \contentsline {paragraph}{Return}{12}{section*.16}%
-\contentsline {section}{\numberline {4}Future Work as of v.0.2}{12}{section.4}%
+\contentsline {section}{\numberline {4}Known Bugs and Possible Improvements}{12}{section.4}%

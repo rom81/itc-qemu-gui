@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2021.8.2)  17 AUG 2021 16:27
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2021.8.2)  19 AUG 2021 16:42
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -391,117 +391,113 @@ Underfull \hbox (badness 10000) in paragraph at lines 8--9
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
 LaTeX Font Info:    Trying to load font information for TS1+cmtt on input line 
-54.
+53.
 
 (/usr/share/texlive/texmf-dist/tex/latex/base/ts1cmtt.fd
 File: ts1cmtt.fd 2019/12/16 v2.5j Standard LaTeX font definitions
 )
-Underfull \hbox (badness 10000) in paragraph at lines 53--56
+Underfull \hbox (badness 10000) in paragraph at lines 51--55
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 53--56
+Underfull \hbox (badness 10000) in paragraph at lines 51--55
 
  []
 
-<images/main_inactive.jpg, id=154, 210.03468pt x 193.47281pt>
+<images/main_inactive.jpg, id=144, 210.03468pt x 193.47281pt>
 File: images/main_inactive.jpg Graphic file (type jpg)
 <use images/main_inactive.jpg>
-Package pdftex.def Info: images/main_inactive.jpg  used on input line 58.
+Package pdftex.def Info: images/main_inactive.jpg  used on input line 57.
 (pdftex.def)             Requested size: 210.03416pt x 193.47234pt.
-<images/main_active.jpg, id=155, 210.03468pt x 193.47281pt>
+<images/main_active.jpg, id=145, 210.03468pt x 193.47281pt>
 File: images/main_active.jpg Graphic file (type jpg)
 <use images/main_active.jpg>
-Package pdftex.def Info: images/main_active.jpg  used on input line 59.
+Package pdftex.def Info: images/main_active.jpg  used on input line 58.
 (pdftex.def)             Requested size: 210.03416pt x 193.47234pt.
 LaTeX Font Info:    Trying to load font information for OMS+cmtt on input line 
-64.
-LaTeX Font Info:    No file OMScmtt.fd. on input line 64.
+63.
+LaTeX Font Info:    No file OMScmtt.fd. on input line 63.
 
 LaTeX Font Warning: Font shape `OMS/cmtt/m/n' undefined
 (Font)              using `OMS/cmsy/m/n' instead
-(Font)              for symbol `textbraceleft' on input line 64.
+(Font)              for symbol `textbraceleft' on input line 63.
 
 [2 <./images/main_inactive.jpg> <./images/main_active.jpg>]
-<images/MemDump.PNG, id=163, 836.52525pt x 328.8285pt>
+<images/MemDump.PNG, id=153, 836.52525pt x 328.8285pt>
 File: images/MemDump.PNG Graphic file (type png)
 <use images/MemDump.PNG>
-Package pdftex.def Info: images/MemDump.PNG  used on input line 68.
+Package pdftex.def Info: images/MemDump.PNG  used on input line 67.
 (pdftex.def)             Requested size: 469.75502pt x 184.6595pt.
  [3 <./images/MemDump.PNG>]
-<images/MemTree.PNG, id=173, 332.442pt x 342.078pt>
+<images/MemTree.PNG, id=162, 332.442pt x 342.078pt>
 File: images/MemTree.PNG Graphic file (type png)
 <use images/MemTree.PNG>
-Package pdftex.def Info: images/MemTree.PNG  used on input line 97.
+Package pdftex.def Info: images/MemTree.PNG  used on input line 96.
 (pdftex.def)             Requested size: 281.85587pt x 290.02646pt.
  [4 <./images/MemTree.PNG>]
-<images/AssemblyView.PNG, id=179, 425.79076pt x 198.7425pt>
+<images/AssemblyView.PNG, id=169, 425.79076pt x 198.7425pt>
 File: images/AssemblyView.PNG Graphic file (type png)
 <use images/AssemblyView.PNG>
-Package pdftex.def Info: images/AssemblyView.PNG  used on input line 105.
+Package pdftex.def Info: images/AssemblyView.PNG  used on input line 104.
 (pdftex.def)             Requested size: 281.85587pt x 131.56165pt.
 
-Overfull \hbox (52.3764pt too wide) in paragraph at lines 110--110
+Overfull \hbox (52.3764pt too wide) in paragraph at lines 109--109
 []\OT1/cmr/bx/n/10 Note: \OT1/cmr/m/n/10 To prop-erly use this view, the ar-chi
 -tec-ture's in-struc-tion pointer reg-is-ter must be set in \OT1/cmtt/m/n/10 pa
 ckage/constants.py\OT1/cmr/m/n/10 .
  []
 
-<images/registers_fancy.jpg, id=180, 572.1375pt x 651.18282pt>
+<images/registers_fancy.jpg, id=170, 572.1375pt x 651.18282pt>
 File: images/registers_fancy.jpg Graphic file (type jpg)
 <use images/registers_fancy.jpg>
-Package pdftex.def Info: images/registers_fancy.jpg  used on input line 120.
+Package pdftex.def Info: images/registers_fancy.jpg  used on input line 119.
 (pdftex.def)             Requested size: 256.0748pt x 291.44969pt.
 [5 <./images/AssemblyView.PNG>]
-Underfull \hbox (badness 10000) in paragraph at lines 123--124
+Underfull \hbox (badness 10000) in paragraph at lines 122--123
 
  []
 
-[6 <./images/registers_fancy.jpg>]
-Underfull \hbox (badness 10000) in paragraph at lines 130--132
-
- []
-
-<images/logging-view.png, id=190, 804.00375pt x 829.0975pt>
+<images/logging-view.png, id=177, 804.00375pt x 829.0975pt>
 File: images/logging-view.png Graphic file (type png)
 <use images/logging-view.png>
-Package pdftex.def Info: images/logging-view.png  used on input line 141.
+Package pdftex.def Info: images/logging-view.png  used on input line 129.
 (pdftex.def)             Requested size: 284.52756pt x 293.40182pt.
-<images/logging-view-populated.png, id=191, 801.99625pt x 831.105pt>
+[6 <./images/registers_fancy.jpg>]
+<images/logging-view-populated.png, id=182, 801.99625pt x 831.105pt>
 File: images/logging-view-populated.png Graphic file (type png)
 <use images/logging-view-populated.png>
 Package pdftex.def Info: images/logging-view-populated.png  used on input line 
-145.
+133.
 (pdftex.def)             Requested size: 284.52756pt x 294.86046pt.
-[7 <./images/logging-view.png>]
-<images/TimeMult.PNG, id=198, 361.35pt x 248.127pt>
+ [7 <./images/logging-view.png>]
+<images/TimeMult.PNG, id=189, 361.35pt x 248.127pt>
 File: images/TimeMult.PNG Graphic file (type png)
 <use images/TimeMult.PNG>
-Package pdftex.def Info: images/TimeMult.PNG  used on input line 150.
+Package pdftex.def Info: images/TimeMult.PNG  used on input line 138.
 (pdftex.def)             Requested size: 281.85587pt x 193.54205pt.
  [8 <./images/logging-view-populated.png> <./images/TimeMult.PNG>]
 File: images/main_active.jpg Graphic file (type jpg)
 <use images/main_active.jpg>
-Package pdftex.def Info: images/main_active.jpg  used on input line 160.
+Package pdftex.def Info: images/main_active.jpg  used on input line 148.
 (pdftex.def)             Requested size: 210.03416pt x 193.47234pt.
-<images/main_active_dark.jpg, id=209, 210.03468pt x 193.47281pt>
+<images/main_active_dark.jpg, id=200, 210.03468pt x 193.47281pt>
 File: images/main_active_dark.jpg Graphic file (type jpg)
 <use images/main_active_dark.jpg>
-Package pdftex.def Info: images/main_active_dark.jpg  used on input line 161.
+Package pdftex.def Info: images/main_active_dark.jpg  used on input line 149.
 (pdftex.def)             Requested size: 210.03416pt x 193.47234pt.
-<images/qmp-monitor-view.png, id=211, 280.04625pt x 243.91125pt>
+<images/qmp-monitor-view.png, id=202, 280.04625pt x 243.91125pt>
 File: images/qmp-monitor-view.png Graphic file (type png)
 <use images/qmp-monitor-view.png>
-Package pdftex.def Info: images/qmp-monitor-view.png  used on input line 168.
+Package pdftex.def Info: images/qmp-monitor-view.png  used on input line 156.
 (pdftex.def)             Requested size: 227.62204pt x 198.25928pt.
 LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <12> not available
-(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 173.
+(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 161.
  [9 <./images/main_active_dark.jpg> <./images/qmp-monitor-view.png>]
 LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <10> not available
-(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 188.
+(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 176.
 
-Overfull \hbox (6.74112pt too wide) in paragraph at lines 202--210
+Overfull \hbox (6.74112pt too wide) in paragraph at lines 190--198
 \OT1/cmtt/m/n/10 <- \OMS/cmtt/m/n/10 f\OT1/cmtt/m/n/10 "return:" \OMS/cmtt/m/n/
 10 f\OT1/cmtt/m/n/10 "hash": 0, "vals": \OMS/cmtt/m/n/10 f\OT1/cmtt/m/n/10 "val
 ": 0, "ismapped": true\OMS/cmtt/m/n/10 g\OT1/cmtt/m/n/10 , \OMS/cmtt/m/n/10 f\O
@@ -509,7 +505,7 @@ T1/cmtt/m/n/10 "val": 0, "ismapped":
  []
 
 [10]
-Overfull \hbox (38.24084pt too wide) in paragraph at lines 229--232
+Overfull \hbox (38.24084pt too wide) in paragraph at lines 217--220
 \OT1/cmtt/m/n/10 <- \OMS/cmtt/m/n/10 f\OT1/cmtt/m/n/10 "return": \OMS/cmtt/m/n/
 10 f f\OT1/cmtt/m/n/10 "name": "memory", "start": 0, "end": -1, "parent": ""\OM
 S/cmtt/m/n/10 g\OT1/cmtt/m/n/10 , \OMS/cmtt/m/n/10 f\OT1/cmtt/m/n/10 "name": "s
@@ -517,25 +513,25 @@ ystem",
  []
 
 [11]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 287.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 276.
  [12]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 287.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 276.
  (./main.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 287.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 287.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 276.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 276.
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: BBA5680AE85A7E0D72C9421EEB3422C9;1730.
+(rerunfilecheck)             Checksum: 72F82EE5912D02CB6A3393DDFBCD2CE7;1572.
 
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 287.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 276.
  ) 
 Here is how much of TeX's memory you used:
- 6252 strings out of 483140
- 96211 string characters out of 5965152
- 360888 words of memory out of 5000000
- 21077 multiletter control sequences out of 15000+600000
+ 6249 strings out of 483140
+ 96146 string characters out of 5965152
+ 360922 words of memory out of 5000000
+ 21076 multiletter control sequences out of 15000+600000
  537562 words of font info for 42 fonts, out of 8000000 for 9000
  36 hyphenation exceptions out of 8191
  39i,6n,34p,862b,380s stack positions out of 5000i,500n,10000p,200000b,80000s
@@ -553,10 +549,10 @@ blic/amsfonts/cm/cmr7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/ams
 fonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/
 cm/cmtt10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmt
 t12.pfb>
-Output written on main.pdf (12 pages, 1224072 bytes).
+Output written on main.pdf (12 pages, 1222927 bytes).
 PDF statistics:
- 307 PDF objects out of 1000 (max. 8388607)
- 258 compressed objects within 3 object streams
- 57 named destinations out of 1000 (max. 500000)
- 272 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 298 PDF objects out of 1000 (max. 8388607)
+ 249 compressed objects within 3 object streams
+ 55 named destinations out of 1000 (max. 500000)
+ 256 words of extra memory for PDF output out of 10000 (max. 10000000)
 

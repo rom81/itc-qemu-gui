@@ -37,10 +37,10 @@
 \section{Introduction}
 
 \subsection{Purpose}
-The purpose of this document is to explain the installation process, as well as the use and functionality of ITC QEMU GUI \version{}. This codebase can be publicly accessed at \url{https://github.com/rom81/itc-qemu-gui/tree/master}.
+The purpose of this document is to explain the installation process as well as the use and functionality of ITC QEMU GUI \version{}. This codebase can be publicly accessed at \url{https://github.com/rom81/itc-qemu-gui/tree/master}.
 
 \subsection{Installation}
-Before starting to install the GUI, make sure you have the following dependencies installed on your machine. These are all available to install from most Linux package managers.
+Before installing the GUI, make sure you have the following dependencies installed on your machine. These are all available to install from most Linux package managers.
 \begin{itemize}
     \item \code{git}
     \item \code{build-essential}
@@ -48,9 +48,8 @@ Before starting to install the GUI, make sure you have the following dependencie
     \item \code{python3-virtualenv}
 \end{itemize}
 
-To install the GUI, you should first create a custom build of QEMU using the provided \code{qemu\_install.sh} script. This is necessary because the GUI takes advantage of some commands which are custom and are not available in vanilla QEMU. After using the script to build QEMU, the \code{startup.sh} script is used to setup and run the GUI. Since the script must be run in the context of the current terminal, make sure to run it using \code{source startup.sh}. The script will install a python virtual environment, install necessary packages in the environment, and run the GUI. This command may be used each time you start the GUI.
-
-To start using the GUI, you should first run an instance of QEMU, making sure to make QMP accessible. A simple example is listed below (which assumes that you have already created a bootable alpine image). If you are unsure how to get started with QEMU, refer to the itc-qemu-manual. \newline \newline
+To install the GUI, you should first create a custom build of QEMU using the provided \code{qemu\_install.sh} script. This is necessary because the GUI takes advantage of some commands which are custom and are not available in vanilla QEMU. After using the script to build QEMU, the \code{startup.sh} script is used to set up and run the GUI. Since the script must be run in the context of the current terminal, make sure to run it using \code{source startup.sh}. The script will install a Python virtual environment, install necessary packages in the environment, and run the GUI. This command may be used each time you start the GUI.
+To start using the GUI, you should first run an instance of QEMU, making sure QMP is accessible. A simple example is listed below (which assumes that you have already created a bootable alpine image). If you are unsure how to get started with QEMU, refer to IV\&V's QEMU manual, itc-qemu-manual. \newline \newline
 \code{\$ qemu-system-x86\_64 -qmp tcp:127.0.0.1:55555,server,nowait  ../alpine/alpine.img}
 \newline
 
@@ -58,10 +57,10 @@ To start using the GUI, you should first run an instance of QEMU, making sure to
     \includegraphics[]{images/main_inactive.jpg}
     \includegraphics[]{images/main_active.jpg}
 \end{center}
-Once you complete the steps in the previous section you should see the main control panel of the GUI pictured above (left). If you are running QMP on port 55555 as in the example, you can just press the connect button without typing anything, and the GUI will automatically connect you to \code{localhost} on port 55555 as seen in the image on the right. Otherwise, you should type in the QMP host and port, and click the connect button. From top to bottom, you can see the pause / play button, the simulation time, the simulation state, the QEMU version, and the connect dialog. Next, we can look at some of the more advanced features that the GUI offers.
+Once you complete the steps in the previous section you should see the main control panel of the GUI pictured above (left). If you are running QMP on port 55555 as in the example, you can just press the connect button without typing anything, and the GUI will automatically connect you to \code{localhost} on port 55555 as seen in the image on the right. Otherwise, you should type in the QMP host and port and click the connect button. From top to bottom, you can see the pause / play button, the simulation time, the simulation state, the QEMU version, and the connect dialog. Next, we can look at some of the more advanced features that the GUI offers.
 
 \section{Features}
-The GUI offers many features that aid with debugging and using QEMU in general. The simplest feature is arguably the pause / play button on the main screen, which uses QMP to send "stop" and "continue" signals to the simulation. The following section will explore some of the more advanced features of the GUI such as the CPU Register View and the Memory dump. Keep in mind that some features of the GUI make use of not only QMP commands, but also HMP commands. To invoke HMP commands through QMP, the GUI uses the following syntax \code{\{"execute": "human-monitor-command", "arguments": \{"command-line": [HMP\_COMMAND]\}\}}
+The GUI offers many features that aid with debugging and using QEMU in general. The simplest feature is arguably the pause / play button on the main screen, which uses QMP to send "stop" and "continue" signals to the simulation. The following section will explore some of the more advanced features of the GUI such as the CPU Register View and the Memory Dump View. Keep in mind that some features of the GUI make use of not only QMP commands, but also HMP commands. To invoke HMP commands through QMP, the GUI uses the following syntax \code{\{"execute": "human-monitor-command", "arguments": \{"command-line": [HMP\_COMMAND]\}\}}.
 \subsection{Memory Dump}
 \begin{figure}[h]
     \centering
@@ -85,7 +84,7 @@ The \textbf{Auto Refresh} checkbox in the top right corner controls whether the 
 \textbf{Note:} The auto refresh only refreshes the currently displayed region of memory. To load a different region the user must either scroll or follow directions as specified in \ref{ReadMem}
 
 \subsubsection{Searching}
-The \textbf{Search} button lets users search for memory at a specified address. If the address is within the currently displayed range, then the address, hexadecimal value at that address, and the ASCII value at that address will be highlighted, and the view will scroll to make them visible. If the address is not within the currently displayed range, then 1024 bytes starting at the specified address will be loaded in, and the same values will be highlighted.
+The \textbf{Search} button lets users search for memory at a specified address. If the address is within the currently displayed range, then the address, hexadecimal value at that address, and the ASCII value at that address will be highlighted, and the view will scroll to make them visible. If the address is not within the currently displayed range, then 1024 bytes starting at the specified address will be loaded and the same values will be highlighted.
 
 \subsubsection{Saving}
 The \textbf{Save} button allows the user to save the currently displayed range of memory to a file. To enable the \textbf{Save} button, the simulation must be paused.\par
@@ -97,7 +96,7 @@ The \textbf{Save} button allows the user to save the currently displayed range o
     \includegraphics[width=.6\textwidth]{images/MemTree.PNG}
     \label{fig:memtree}
 \end{figure}
-The memory tree view displays the different regions of memory and their address ranges in the form of a tree. To open the memory tree view navigate to Tools $\rightarrow$ Memory Tree. Each region can be expanded to show its subregions. Additionally, double clicking a region opens up a memory dump view with that region displaying.
+The Memory Tree View displays the different regions of memory and their address ranges in the form of a tree. To open the memory tree view navigate to Tools $\rightarrow$ Memory Tree. Each region can be expanded to show its subregions. Additionally, double clicking a region opens up a memory dump view with that region displaying.
 \newpage
 \subsection{Assembly View}
 \begin{figure}[h]
@@ -106,37 +105,26 @@ The memory tree view displays the different regions of memory and their address 
     \label{fig:asmview}
 \end{figure}
 
-The assembly view shows the current assembly instruction. To open the assembly view navigate to Tools $\rightarrow$ Assembly View. The display updates when the GUI receives a stop signal from QEMU, allowing it to work in tandem with GDB using the \code{si} or \code{ni} commands.\par
+The Assembly View shows the current assembly instruction. To open the Assembly View navigate to Tools $\rightarrow$ Assembly View. \par
 \textbf{Note:} To properly use this view, the architecture's instruction pointer register must be set in \code{package/constants.py}. By default, \code{\$eip} is used.\par
 \textbf{Areas for Improvement:}
 \begin{itemize}
-    \item A previous version of tool explored using QEMU's existing gdbstub functionality to perform be able to step through assembly, rather than just using an HMP command (as is done in the current version of this software). The current version of this software does not include this functionality because it did not work reliably, however, if this functionality is desired (despite its flaws), an experimental version is located under the branch \code{gdb-fixes-in-progress}. In short, the bug preventing this functionality from existing in the main version of this GUI is because the \code{si} and \code{ni} do not always give a stop signal when they finish stepping. Thus, sometimes the display doesn't properly update. This functionality is currently commented out in the main version.
+    \item A previous version of the GUI explored using QEMU's existing gdbstub functionality to perform be able to step through assembly, rather than just using an HMP command (as is done in the current version of this software). The current version of this software does not include this functionality because it did not work reliably, however, if this functionality is desired (despite its flaws), an experimental version is located under the branch \code{gdb-fixes-in-progress}. In short, the bug preventing this functionality from existing in the main version of this GUI is because the \code{si} and \code{ni} do not always give a stop signal when they finish stepping. Thus, sometimes the display doesn't properly update. This functionality is currently commented out in the main version.
 \end{itemize}
 
 \subsection{CPU Register View}
-The CPU register view is used to view simulation CPU registers and their contents. The view can be opened by navigating to (Tools $\rightarrow$ CPU Register View). 
+The CPU Register View is used to view simulation CPU registers and their contents. The view can be opened by navigating to (Tools $\rightarrow$ CPU Register View). 
 
 \begin{center}
     \includegraphics[width=90mm]{images/registers_fancy.jpg}
 \end{center}
 
-The register view offers options to toggle auto-refresh and to save the registers to a separate file. Finally, text mode can be toggled through the Options menu, and offers a less visually pleasing (but more organized and compact) view of the registers. \newline
+This view offers options to toggle auto-refresh and to save the registers to a separate file. The text mode can be toggled through the Options menu, and offers a less visually pleasing (but more organized and compact) view of the registers. \newline
 
-\subsubsection{Searching Events}
-In the top left of the trace events screen you should see a search bar. You can use this search bar to search for trace events. To the right of the search bar you should see an up arrow and a down arrow. The up arrow is used to collapse all nodes in the tree of trace events, and the down arrow is used to expand all of the nodes. 
-\newpage
-
-\subsubsection{Viewing and Saving Output}
-To the right of the trace event listing you should see the past one hundred trace events. This output is saved in a file located at \code{/tmp/errors.log} and regex is used to filter out normal logging output (leaving only trace events). 
-To save the output that you can see on the right of the screen to a file, navigate to File $\rightarrow$ Save to File. To disable auto-refresh, you may navigate to Options $\rightarrow$ Auto Refresh. \newline
-
-\textbf{Note:}
-\begin{itemize}
-    \item The trace event window actually supports custom trace events which makes it very useful for debugging code that you may have written to customize and add to QEMU.
-\end{itemize}
+The CPU Register View is populated by custom QMP command \code{itc-cpureg}. Currently, this command only works for i386. The process for extending this command to other architectures is described later in the \hyperref[sec:itccpureg]{'Added QMP Commands'} section under '\code{itc-cpureg}'.
 
 \subsection{Logging View}
-The logging view allows you to view, save, and filter trace event logs. To open the log navigate to Tools $\rightarrow$ Logging. Whenever you select a logging option, output is stored to a logfile located at the default logging location (\code{qemu.log} in the user's home directory) or at the path specified in file prompt. The view can be seen below.
+The Logging View allows you to view, save, and filter trace event logs. To open the log navigate to Tools $\rightarrow$ Logging. Whenever you select a logging option, output is stored to a logfile located at the default logging location (\code{qemu.log} in the user's home directory) or at the path specified in file prompt. The view can be seen below.
 \begin{center}
     \includegraphics[width=100mm]{images/logging-view.png}
 \end{center}
@@ -144,14 +132,14 @@ By default, the display will auto-refresh. There are two ways to select events t
 \begin{center}
     \includegraphics[width=100mm]{images/logging-view-populated.png}
 \end{center}
-\subsection{Time Multiplier Graph}
+\subsection{Timing View}
 \begin{figure}[h]
     \centering
     \includegraphics[width=.6\textwidth]{images/TimeMult.PNG}
     \label{fig:timemult}
 \end{figure}
 The time multiplier graphs real time vs. $\frac{\Delta t_{sim}}{\Delta t_{real}}$ where $t_{sim}$ is the simulation's virtual time, and $t_{real}$ is the real time. To open the time multiplier graph navigate to Tools $\rightarrow$ Time Multiplier.\par
-At the top of the display, there are 3 values to alter the graph: \textbf{Sampling Rate}, \textbf{Window}, and \textbf{Limit}. \textbf{Sampling Rate}, as its name suggests, is the rate at which the simulation's time is sampled. \textbf{Window} is the number of samples used for the moving average. So, a smaller value for \textbf{Window} makes the graph change quicker, while a larger value makes the graph change slower. \textbf{Limit} is the number of seconds to display. After changing any of these values, click \textbf{Refresh} to make the changes take effect. The default value for all 3 of these values is 10.\par
+At the top of the display, there are three values to alter the graph: \textbf{Sampling Rate}, \textbf{Window}, and \textbf{Limit}. \textbf{Sampling Rate}, as its name suggests, is the rate at which the simulation's time is sampled. \textbf{Window} is the number of samples used for the moving average. So, a smaller value for \textbf{Window} makes the graph change quicker, while a larger value makes the graph change slower. \textbf{Limit} is the number of seconds to display. After changing any of these values, click \textbf{Refresh} to make the changes take effect. The default value for all three of these values is 10.\par
 On the right-hand side there are various data about the graph, including the absolute minimum, absolute maximum, and the minimum, maximum, mean, and median for values currently displayed.
 \subsection{Miscellaneous}
 \subsubsection{Dark Mode}
@@ -162,7 +150,7 @@ Dark mode can be enabled through the preferences dialog which contains the check
 \end{center}
 \subsubsection{Plugin Support}
 This system uses \href{https://yapsy.readthedocs.io/en/latest/}{Yapsy} as a plugin manager. To add a plugin after implementing it, specify the plugin path in \code{addPlugins} in \code{package/mainwindow.py}. Then also specify how the plugin should be handled.\par
-All plugins should be accessible through the Plugins dropdown menu, which can be found by doing Tools $\rightarrow$ Plugins. Right now, the only plugin is the QMP Display which shows responses to QMP commands, as shown below.
+All plugins should be accessible through the Plugins dropdown menu, which can be found by clicking Tools $\rightarrow$ Plugins. Right now, the only plugin is the QMP Display which shows responses to QMP commands, as shown below.
 
 \begin{center}
     \includegraphics[width=80mm]{images/qmp-monitor-view.png}
@@ -264,7 +252,8 @@ The \code{itc-time-metric} command gives an array containing the current host ti
 
 
 \subsection{\code{itc-cpureg}}
-The \code{itc-cpureg} command returns all CPU register names and values along with the total CPU register count. In v.0.1 of the GUI, the CPU Register View used a the HMP command \code{info registers} but this necessitated complex parsing in the GUI (since HMP commands are returned a strings, rather than as JSON objects  as in QMP commands) which was very fragile and broke with QEMU updates. It was suggested that a custom QMP command might eliminate this issue, so the \code{itc-cpureg} command was developed. Since the \code{info registers} command used a function which dumped the CPU state to a file, it was copied then modified to create a function to return the CPU state as a JSON object rather than writing it to a file. 
+\label{sec:itccpureg}
+The \code{itc-cpureg} command returns all CPU register names and values along with the total CPU register count. In v.0.1 of the GUI, the CPU Register View used a the HMP command \code{info registers} but this necessitated complex parsing in the GUI (since HMP commands are returned a strings, rather than as JSON objects  as in QMP commands) which was very fragile and broke with QEMU updates. It was suggested that a custom QMP command might eliminate this issue, so the \code{itc-cpureg} command was developed. The \code{info registers} command uses a function which dumped the CPU state to a file. This function was copied then modified to create a function to return the CPU state as a JSON object rather than writing it to a file. 
 
 It is important to understand that the \code{itc-cpureg} command is currently only implemented for i386 systems; since CPU registers vary across architectures, there is no one-size-fits-all solution for all architectures. To extend this command to work for other architectures, a function  \code{[ARCH]\_cpu\_return\_state} needs to be written and connected to the CPUClass function \code{return\_state}. This function will look very similar to that architecture's \code{[ARCH]\_cpu\_dump\_state} function, except it will return the CPU state instead of writing it to a file. Currently, \code{x86\_cpu\_return\_state} is the only example to follow in writing this function. Once this function is written and connected to \code{CPUClass}'s \code{return\_state} function, the \code{itc-cpureg} command will work for that architecture.
 
@@ -274,7 +263,7 @@ It is important to understand that the \code{itc-cpureg} command is currently on
 \paragraph{Return} \code{itc-cpureg} returns an array containing a \code{CpuReturn} object and an integer representing the total number of registers described in the array.
  
  
-\section{Future Work as of v.0.2}
+\section{Known Bugs and Possible Improvements}
 
 In inspecting an upgrading this software from v.0.1 to v.0.2, several bug fixes and improvements were identified and made, however, some work remains to further improve this application. This includes:
 
