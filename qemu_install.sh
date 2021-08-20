@@ -8,6 +8,11 @@ locations=(
 	["./modified-qemu/memory.c"]="../qemu/memory.c"
 	["./modified-qemu/misc.json"]="../qemu/qapi/misc.json"
 	["./modified-qemu/qmp-cmds.c"]="../qemu/monitor/qmp-cmds.c"
+	["./modified-qemu/helper.c"]="../qemu/target/i386/helper.c"
+	["./modified-qemu/cpu.h"]="../qemu/target/i386/cpu.h"
+	["./modified-qemu/include/hw/core/cpu.h"]="../qemu/include/hw/core/cpu.h"
+	["./modified-qemu/hw/core/cpu.c"]="../qemu/hw/core/cpu.c"
+	["./modified-qemu/target/i386/cpu.c"]="../qemu/target/i386/cpu.c"
 )
 
 if ! command -v git &> /dev/null
