@@ -32,6 +32,7 @@ setuptools.setup(
             "plugins/*.yapsy-plugin"
         ],
     },
+    setup_requires=['wheel'],
     entry_points={
         "gui_scripts": [
             "itc-qemu-gui = itc_qemu_gui.app:run",
