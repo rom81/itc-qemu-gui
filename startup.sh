@@ -8,6 +8,7 @@ off='\033[0m'
 if [ ! -d "./venv" ]; then
     echo -e "${yellow}[+]${off} Creating virtual enviornment"
     python3 -m venv venv
+    pip3 install wheel
 fi
 
 if [ -z $VIRTUAL_ENV ]; then
